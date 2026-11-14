@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Real Deal",
+  "version": "0.0.0",
+  "description": "How much to trust amazon.in reviews. Runs entirely in your browser.",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["https://www.amazon.in/*"],
+  "action": { "default_title": "Open Real Deal" },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.amazon.in/*"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ]
+}
