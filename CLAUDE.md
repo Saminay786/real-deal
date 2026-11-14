@@ -213,6 +213,7 @@ Results must be identical across runs for the same input.
   other products' stars — extraction must ignore them)
 - `reviews-a-p1` (10 reviews, Most recent), `reviews-a-p2` (30, after
   "Show 10 more"), `reviews-a-60` (60) — same product, B0CCM8L54V
+- `reviews-b-p1` (10 reviews, Most recent) — B0GLG5JSHK
 - `reviews-b-top` (10 reviews, "Top reviews" order) — B0HB6VXMJ6
 - amazon.in serves review lists at `/portal/customer-reviews/<ASIN>`.
 - Load in Chrome: `chrome://extensions` → Developer mode → Load unpacked → `dist/`
