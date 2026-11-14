@@ -160,8 +160,16 @@ Results must be identical across runs for the same input.
   explains the interval in one sentence; hidden when insufficient; "low data"
   styling when `N < 30`.
 - **Side panel (B):**
-  1. Collection card: reviews collected, date span, whether the minimum is
-     met, and a hint to sort reviews by "Most recent" and page through them.
+  1. Collection card, updating live as the user clicks "Show 10 more":
+     - reviews captured (e.g. "184 reviews captured"), out of Amazon's total
+       when the page shows it;
+     - months covered and date span (e.g. "7 months · Apr–Nov 2026");
+     - progress toward the minimum (≥ 100 reviews, ≥ 3 buckets): "Need 38
+       more reviews" or "Enough to analyse";
+     - a hint to sort by "Most recent", keep clicking "Show 10 more", and use
+       star/variant filters to reach further back.
+     The user clicks; the extension never auto-loads (decided 2026-11-14;
+     revisit in Phase 2 once Amazon's per-filter review cap is measured).
   2. Narrative card: ≤ 3 sentences (Nano or template).
   3. Theme list sorted by significance, then |diff|. Each row: label,
      inline-SVG sparkline of bucket shares with Wilson CI band and a marker at
@@ -194,6 +202,19 @@ Results must be identical across runs for the same input.
 - `npm run dev` — dev build with HMR
 - `npm run build` — type-check + production build to `dist/`
 - `npm test` — Vitest
+- `npm run build:fixtures` — dev-only build ("Real Deal (fixtures)") whose side
+  panel saves the current amazon.in page to Downloads as a test fixture, with
+  name/address blanked. Move files into `tests/fixtures/`, scan for personal
+  data, then run `npm run build` again.
+
+## Fixtures (tests/fixtures/)
+- `product-many` (11,413 ratings), `product-281`, `product-46`,
+  `product-few` (22), `product-none` (no rating; a carousel on the page shows
+  other products' stars — extraction must ignore them)
+- `reviews-a-p1` (10 reviews, Most recent), `reviews-a-p2` (30, after
+  "Show 10 more"), `reviews-a-60` (60) — same product, B0CCM8L54V
+- `reviews-b-top` (10 reviews, "Top reviews" order) — B0HB6VXMJ6
+- amazon.in serves review lists at `/portal/customer-reviews/<ASIN>`.
 - Load in Chrome: `chrome://extensions` → Developer mode → Load unpacked → `dist/`
 
 ## Status

@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:fixtures": "tsc --noEmit && vite build --mode fixtures",
     "test": "vitest run"
   },
   "dependencies": {
