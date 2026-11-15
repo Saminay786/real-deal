@@ -103,6 +103,7 @@ function App() {
             onLoad={() => void send('rd:load-view')}
             onStop={() => void send('rd:stop-load')}
             onOpen={open}
+            allCollected={summary.totalOnAmazon !== null && summary.captured >= summary.totalOnAmazon}
           />
         </>
       ) : (

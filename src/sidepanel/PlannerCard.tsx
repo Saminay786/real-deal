@@ -35,10 +35,12 @@ interface Props {
   onLoad: () => void;
   onStop: () => void;
   onOpen: (v: ReviewView) => void;
+  /** Every written review Amazon reports has been captured. */
+  allCollected: boolean;
 }
 
-export function PlannerCard({ current, progress, load, onLoad, onStop, onOpen }: Props) {
-  const next = nextView(progress);
+export function PlannerCard({ current, progress, load, onLoad, onStop, onOpen, allCollected }: Props) {
+  const next = allCollected ? null : nextView(progress);
   const currentKey = current ? viewKey(current) : null;
   const currentStatus = current ? viewStatus(progress.get(viewKey(current))) : null;
   const canLoad = current !== null && currentStatus !== 'capped' && currentStatus !== 'complete';
@@ -76,7 +78,8 @@ export function PlannerCard({ current, progress, load, onLoad, onStop, onOpen }:
           </button>
         </p>
       )}
-      {!next && <p class="ok small">All planned views done.</p>}
+      {allCollected && <p class="ok small">✓ All reviews collected. No need to open more views.</p>}
+      {!next && !allCollected && <p class="ok small">All planned views done.</p>}
 
       <ul class="plan">
         {PLAN.map((v) => {
