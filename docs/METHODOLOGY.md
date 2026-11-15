@@ -3,6 +3,35 @@
 Every statistical method used by Real Deal is documented here with its formula.
 Methods are added as they are built.
 
+## Review collection: what data the analysis sees
+
+Theme trends (pipeline B) are computed only from reviews **the user has
+viewed** on amazon.in. The extension never fetches pages or clicks "Show 10
+more" itself. That makes the sample depend on how the user browsed:
+
+- **Unit.** One review = one stored record, keyed by Amazon's review ID
+  (`R3RST0O7ZS3260`). Seeing the same review again (another visit, a filter,
+  overlapping pages) updates it but never counts it twice.
+- **Population analysed.** Reviews written in India (`Reviewed in India on …`).
+  Reviews from other countries are stored and counted in the panel, but
+  excluded: they are a different buyer population and are often a different
+  product variant.
+- **Minimum.** At least 100 usable reviews spread over at least 3 calendar
+  months. The side panel shows how many more are needed. Phase 3 refines the
+  month check after merging sparse months.
+- **Sampling bias to keep in mind.**
+  - *Most recent* order gives a contiguous run of the newest reviews. This is
+    the right input for "what changed recently", but it covers only as far back
+    as the user scrolled.
+  - Star and variant filters reach older reviews but over-represent that star
+    level or variant. Mixing filtered and unfiltered collections changes the
+    star mix over time and can create spurious theme shifts. Phase 3 has to
+    account for this before running any test.
+  - Amazon may cap how many reviews it shows per sort and filter.
+- **Total on Amazon.** "1,283 customer reviews" counts *written* reviews, not
+  star ratings (11,413). Star filters lower the number shown, so the largest
+  value seen is kept.
+
 ## Rating credible interval
 
 **Question.** Amazon shows an average rating such as 4.4★. How sure can we be

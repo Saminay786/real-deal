@@ -31,6 +31,25 @@ export const PRODUCT = {
   badgeAnchor: ['#acrPopover', '#averageCustomerReviews'],
 } as const;
 
+/** Review list pages (/portal/customer-reviews/<ASIN>, /product-reviews/<ASIN>). */
+export const REVIEWS = {
+  /** One element per review; its `id` is the review ID (e.g. "R3RST0O7ZS3260"). */
+  review: ['li[data-hook="review"]', 'div[data-hook="review"]', '[data-hook="review"]'],
+  /** Container the reviews are appended to when the user clicks "Show 10 more". */
+  list: ['#cm_cr-review_list', '[data-hook="review-list"]', '#cm-cr-dp-review-list'],
+  rating: ['[data-hook="review-star-rating"]', '[data-hook="cmps-review-star-rating"]'],
+  title: ['[data-hook="review-title"]'],
+  body: ['[data-hook="review-body"]'],
+  date: ['[data-hook="review-date"]'],
+  verified: ['[data-hook="avp-badge"]', '[data-hook="avp-badge-linkless"]'],
+  variant: ['[data-hook="format-strip"]', '[data-hook="format-strip-linkless"]'],
+  /** Separator icons between variant parts ("Size: … | Colour: …"). */
+  variantSeparator: ['.a-icon-text-separator'],
+  helpful: ['[data-hook="helpful-vote-statement"]'],
+  /** "1,283 customer reviews" (changes when a star filter is applied). */
+  totalReviews: ['[data-hook="cr-filter-info-review-rating-count"]'],
+} as const;
+
 /** Header elements showing the signed-in user's name and delivery address. Blanked in fixtures. */
 export const PERSONAL_INFO_SELECTORS: readonly string[] = [
   '#nav-link-accountList-nav-line-1',

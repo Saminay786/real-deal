@@ -9,3 +9,8 @@ export function pageType(pathname: string): PageType {
   if (pathname === '/s' || pathname.startsWith('/s/')) return 'search';
   return 'other';
 }
+
+/** ASIN from a product or review page path, e.g. /portal/customer-reviews/B0CCM8L54V/… */
+export function asinFromPath(pathname: string): string | null {
+  return pathname.match(/\/(?:dp|gp\/product|product-reviews|customer-reviews)\/([A-Z0-9]{10})(?:[/?]|$)/)?.[1] ?? null;
+}

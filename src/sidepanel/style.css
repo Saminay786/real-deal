@@ -1,0 +1,85 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #5f6670;
+  --card: #f6f8fa;
+  --border: #d5dae0;
+  --ok: #1a7f37;
+  --todo: #9a6700;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16191d;
+    --fg: #e6e9ed;
+    --muted: #9aa3ad;
+    --card: #1f2329;
+    --border: #353b44;
+    --ok: #4ac26b;
+    --todo: #d4a72c;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+main {
+  padding: 12px;
+}
+
+h1 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+h2 {
+  font-size: 13px;
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.card p {
+  margin: 4px 0;
+}
+
+.big {
+  font-size: 16px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.todo {
+  color: var(--todo);
+  font-weight: 600;
+}
+
+.ok .muted,
+.todo .muted {
+  font-weight: 400;
+}

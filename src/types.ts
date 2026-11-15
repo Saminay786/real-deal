@@ -23,6 +23,18 @@ export interface Review {
   date: string | null;
   verified: boolean | null;
   helpfulVotes: number | null;
+  /** Variant line as shown, e.g. "Size: 10 PACK | Colour: Photo Frame Hook". */
+  variant: string | null;
+  /** Country from "Reviewed in <country> on …", e.g. "India". */
+  country: string | null;
+}
+
+/** Per-product metadata seen on review pages. */
+export interface ProductMeta {
+  asin: string;
+  /** Written reviews on Amazon ("1,283 customer reviews"); largest value seen. */
+  totalReviews: number | null;
+  updatedAt: string;
 }
 
 export interface Theme {

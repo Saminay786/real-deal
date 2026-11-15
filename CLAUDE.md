@@ -59,6 +59,9 @@ src/
       observer.ts                   # MutationObserver for AJAX review pagination
       search.ts                     # pipeline C card badges + reorder (v2)
   collect/store.ts                  # IndexedDB: reviews by ASIN, embeddings by reviewId
+  collect/summary.ts                # pure: collection progress for the side panel
+  messages.ts                       # content <-> service worker <-> side panel messages
+  debug.ts                          # DEBUG flag + logger
   themes/
     sentences.ts                    # review -> sentences
     embed.worker.ts                 # MiniLM embeddings in a Web Worker
@@ -82,7 +85,11 @@ research/                           # Python notebooks
 
 ## Data model (types.ts)
 - `ProductSnapshot { asin, title, url, rating, ratingCount, ratingDistribution: Record<1|2|3|4|5, number> /* percentages */, capturedAt }`
-- `Review { reviewId, asin, rating, title, body, date /* ISO yyyy-mm-dd */, verified, helpfulVotes }`
+- `Review { reviewId, asin, rating, title, body, date /* ISO yyyy-mm-dd */, verified, helpfulVotes, variant, country }`
+  — `variant` e.g. "Size: 10 PACK | Colour: Photo Frame Hook"; `country` from
+  "Reviewed in <country> on …". Only `country = 'India'` reviews are analysed
+  (others are stored, counted, not used).
+- `ProductMeta { asin, totalReviews /* largest "N customer reviews" seen */, updatedAt }`
 - `Theme { id, label, labelSource: 'ctfidf'|'nano', topTerms: string[], size }`
 - `ThemeSeries { themeId, buckets: { start, end, n, k, share, ci: [lo, hi] }[] }` — `k` = reviews in bucket mentioning theme
 - `ShiftResult { themeId, label, changeAt, before: {n, k, share}, after: {n, k, share}, diff, diffCi: [lo, hi], pValue, qValue, significant, exemplars: { before: string[], after: string[] } }`
@@ -228,7 +235,10 @@ Results must be identical across runs for the same input.
 - [x] Phase 0 — scaffold (MV3 + side panel, amazon.in host only; build + 3 smoke tests pass)
 - [x] Phase 1 — rating confidence badge (pipeline A): extraction from 5 product
   fixtures, Jeffreys-prior Dirichlet interval, range-only badge; 47 tests pass
-- [ ] Phase 2 — review collection (pipeline B step 1)
+- [x] Phase 2 — review collection (pipeline B step 1): review extraction (5
+  fixtures), MutationObserver for "Show 10 more", IndexedDB store (dedupe by
+  reviewId, written by the service worker in the extension origin), live
+  collection card; 72 tests pass
 - [ ] Phase 3 — stats core (bucket, intervals, changepoint, fdr)
 - [ ] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end
 - [ ] Phase 5 — Gemini Nano labels + narrative
