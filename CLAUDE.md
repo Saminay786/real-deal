@@ -40,7 +40,7 @@ amazon.in only until told otherwise.
 - Manifest V3, TypeScript (strict, no `any`)
 - Vite + `@crxjs/vite-plugin`
 - Chrome Side Panel API; Preact for side panel and options UI
-- Vitest (+ `happy-dom` environment only for DOM extraction tests, ask first)
+- Vitest (+ `happy-dom` environment for DOM extraction tests; approved 2026-11-15)
 - `research/` holds Python notebooks (owned by the user — do not generate
   notebooks unless asked)
 
@@ -100,15 +100,19 @@ Results must be identical across runs for the same input.
 - Counts: `c_k = round(p_k / 100 · N)` for k = 1..5 from the percentage
   distribution and rating count `N`. (Amazon rounds percentages; note this in
   METHODOLOGY as a limitation.)
-- Prior `θ ~ Dirichlet(α_0 = 1, …, 1)`; posterior `Dirichlet(1 + c_1, …, 1 + c_5)`.
-- Mean rating `μ = Σ k·θ_k`. Posterior mean `E[μ] = Σ k·(1 + c_k) / (5 + Σc_k)`
-  (closed form, use it for the point value).
+- Prior `θ ~ Dirichlet(α_0, …, α_0)` with **α_0 = 0.5 (Jeffreys)**; posterior
+  `Dirichlet(α_0 + c_1, …, α_0 + c_5)`. (Changed from α_0 = 1 on 2026-11-15:
+  the uniform prior undercovered on 5★-heavy products, e.g. 0.74 at n = 20.
+  Comparison table in METHODOLOGY.)
+- Mean rating `μ = Σ k·θ_k`. Posterior mean `E[μ] = Σ k·(α_0 + c_k) / (5α_0 + Σc_k)`
+  (closed form).
 - Interval: equal-tailed 90% from `S = 4000` Monte Carlo draws (Dirichlet via
   normalised Gamma(α,1), Marsaglia–Tsang).
 - Sufficiency: `N = 0` or distribution missing → insufficient (badge hidden);
   `N < 30` → low; else ok.
-- Coverage test: for fixed true θ and n ∈ {20, 100, 1000}, simulate 500
-  datasets; empirical coverage of the 90% interval must be in [0.85, 0.95].
+- Coverage test: for fixed true θ ∈ {hooks 54% 5★, mop 87% 5★, poorly rated}
+  and n ∈ {20, 100, 1000}, simulate 500 datasets; empirical coverage of the 90%
+  interval must be in [0.85, 0.95]. Never change seeds to make it pass.
 
 **B1. Buckets (bucket.ts)**
 - Calendar-month buckets by review date. Merge adjacent buckets (earlier into
@@ -156,9 +160,10 @@ Results must be identical across runs for the same input.
 - Sponsored results are scored but labelled.
 
 ## UI
-- **Badge (A):** `4.2★ (likely 3.9–4.4)` beside Amazon's rating; tooltip
-  explains the interval in one sentence; hidden when insufficient; "low data"
-  styling when `N < 30`.
+- **Badge (A):** range only, `likely 3.8–4.5`, beside Amazon's rating (Amazon's
+  own average is right there; decided 2026-11-15). One decimal, two if the
+  range would collapse (`4.01–4.04`). Tooltip explains the interval in one
+  sentence; hidden when insufficient; `· low data` + dashed border when `N < 30`.
 - **Side panel (B):**
   1. Collection card, updating live as the user clicks "Show 10 more":
      - reviews captured (e.g. "184 reviews captured"), out of Amazon's total
@@ -221,7 +226,8 @@ Results must be identical across runs for the same input.
 ## Status
 ### v1
 - [x] Phase 0 — scaffold (MV3 + side panel, amazon.in host only; build + 3 smoke tests pass)
-- [ ] Phase 1 — rating confidence badge (pipeline A)
+- [x] Phase 1 — rating confidence badge (pipeline A): extraction from 5 product
+  fixtures, Jeffreys-prior Dirichlet interval, range-only badge; 47 tests pass
 - [ ] Phase 2 — review collection (pipeline B step 1)
 - [ ] Phase 3 — stats core (bucket, intervals, changepoint, fdr)
 - [ ] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end
