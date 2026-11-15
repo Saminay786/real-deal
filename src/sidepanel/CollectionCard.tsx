@@ -41,7 +41,7 @@ export function CollectionCard({ s, onReviewsPage }: { s: CollectionSummary; onR
       )}
       <p class="muted small">
         {onReviewsPage
-          ? 'Tip: sort by "Most recent" and keep clicking "Show 10 more". Star filters reach older reviews.'
+          ? 'Tip: Amazon shows at most 100 reviews per sort or filter. For more, pick each star filter (5 star … 1 star) with "Most recent" and click "Show 10 more" until it stops. Reviews are merged without duplicates.'
           : 'Open this product\'s reviews ("See more reviews") to collect them.'}
       </p>
     </section>

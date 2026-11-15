@@ -27,7 +27,10 @@ more" itself. That makes the sample depend on how the user browsed:
     level or variant. Mixing filtered and unfiltered collections changes the
     star mix over time and can create spurious theme shifts. Phase 3 has to
     account for this before running any test.
-  - Amazon may cap how many reviews it shows per sort and filter.
+  - Amazon shows **at most 100 reviews per sort/filter combination** (measured
+    on 2026-11-15: the hooks listing stopped at exactly 100, with "To see more,
+    search or filter all reviews"). Going further back requires filters, which
+    is why the star-mix problem above matters.
 - **Total on Amazon.** "1,283 customer reviews" counts *written* reviews, not
   star ratings (11,413). Star filters lower the number shown, so the largest
   value seen is kept.

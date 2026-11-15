@@ -180,8 +180,12 @@ Results must be identical across runs for the same input.
        more reviews" or "Enough to analyse";
      - a hint to sort by "Most recent", keep clicking "Show 10 more", and use
        star/variant filters to reach further back.
-     The user clicks; the extension never auto-loads (decided 2026-11-14;
-     revisit in Phase 2 once Amazon's per-filter review cap is measured).
+     The user clicks; the extension never auto-loads. **Measured 2026-11-15:
+     Amazon shows at most 100 reviews per sort/filter combination** ("To see
+     more, search or filter all reviews"), so auto-loading would gain nothing.
+     More reviews come from star, variant and keyword filters (up to 100 each),
+     merged by reviewId. Because star filters distort the star mix over time,
+     Phase 3 must stratify change-point permutations by star rating.
   2. Narrative card: ≤ 3 sentences (Nano or template).
   3. Theme list sorted by significance, then |diff|. Each row: label,
      inline-SVG sparkline of bucket shares with Wilson CI band and a marker at
