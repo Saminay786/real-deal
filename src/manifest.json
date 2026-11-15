@@ -10,6 +10,9 @@
     "service_worker": "src/background/service-worker.ts",
     "type": "module"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "side_panel": {
     "default_path": "src/sidepanel/index.html"
   },

@@ -51,6 +51,73 @@ some point in time. The pipeline:
    comparing reviews only within the same star level.
 4. **False discovery rate** across all themes of the product.
 
+## Themes
+
+**Sentences.** Each review's title and body are split on `. ! ? ।` and line
+breaks. Pieces with fewer than 3 words ("Good", "12 unused") are dropped.
+
+**Language filter.** The embedding model is English-only. A sentence is treated
+as non-English if it contains Devanagari script, or if at least 2 of its words,
+and at least 20%, are common romanised-Hindi words ("hai", "nahi", "wapas",
+"isliye", …). English homographs ("to", "me", "so") are excluded from the list.
+Non-English sentences are dropped. A review left with no English sentence is
+excluded from the analysis entirely (numerator *and* denominator) and counted in
+the panel. A review with no sentence of 3+ words ("Good") stays in, with
+$x_i = 0$ for every theme: it genuinely mentions none of them.
+
+**Embeddings.** all-MiniLM-L6-v2 (quantized, 384 dimensions) maps each sentence
+to a vector $v \in \mathbb{R}^{384}$, mean-pooled over tokens and normalised to
+$\|v\| = 1$. For unit vectors, cosine similarity is the dot product
+$\cos(u, v) = u \cdot v$, and we use the distance $d(u, v) = 1 - u \cdot v$.
+Sentences with similar meaning are close even without shared words: "The hook
+fell off the wall" vs "It does not stick to the wall" scores 0.32, while both
+score under 0.15 against "Great value for money".
+
+**Clustering: spherical k-means.**
+1. *Seeding (k-means++).* Pick the first centre at random. Pick each next centre
+   with probability proportional to $d(x, \text{nearest centre})^2$, which spreads
+   the centres out.
+2. *Assign* each sentence to the centre with the largest $x \cdot c_j$.
+3. *Update* each centre to the normalised mean of its sentences:
+   $c_j = \sum_{x \in C_j} x \,/\, \|\sum_{x \in C_j} x\|$.
+4. Repeat 2–3 until no assignment changes (at most 100 iterations). Run 10
+   restarts and keep the one with the smallest total distance $\sum_i d(x_i, c_{j(i)})$.
+
+**Choosing the number of themes $k$ (silhouette).** For a sentence $i$, let
+$a(i)$ be its mean distance to the other sentences in its own cluster, and
+$b(i)$ the smallest mean distance to the sentences of any other cluster:
+
+$$s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}} \in [-1, 1].$$
+
+Values near 1 mean it sits well inside its cluster, and values near 0 mean it is
+on a border. We try $k = 3, \dots, 8$ and keep the $k$ with the highest mean
+$s(i)$, computed on the same seeded sample of up to 500 sentences for every $k$.
+At least 30 English sentences are needed.
+
+**Labels: c-TF-IDF.** All sentences of a cluster are treated as one document.
+With $\text{tf}(t, c)$ the count of word $t$ in cluster $c$, $f(t)$ its count
+across all clusters, and $A$ the average number of words per cluster:
+
+$$w(t, c) = \text{tf}(t, c) \cdot \log\!\left(1 + \frac{A}{f(t)}\right).$$
+
+Words frequent in this cluster but rare elsewhere score highest. Stop words and
+generic shopping words ("product", "amazon", "buy") are removed. The label is
+the top 3 words.
+
+**From sentences to reviews.** For each theme, review $i$ gets $x_i = 1$ if any
+of its sentences is in that cluster. The theme's share in a month is then "the
+share of reviews that mention it", and the bucket and change-point steps below
+run on these $x_i$.
+
+**When to compare within star levels.** Star-filtered views distort the star mix
+over time (see *Why stratify*), so the change-point test is stratified by star
+**only if star-filtered views were collected** for the product. Stratifying has a
+blind spot: if a theme lives entirely in one star level (every "adhesive"
+complaint is 1★), a rise in it appears only as "more 1★ reviews", which the
+stratified test attributes to the star mix. In a synthetic test it detected
+nothing, while the unstratified test caught the shift. With unfiltered collection
+the star mix is natural, so the plain test is used and such rises are visible.
+
 ## Monthly buckets
 
 Reviews are sorted by date and grouped by calendar month. Thin months are

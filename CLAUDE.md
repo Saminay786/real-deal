@@ -88,6 +88,7 @@ src/
 models/                             # bundled MiniLM (quantized ONNX) + tokenizer
 tests/                              # mirrors src/; tests/fixtures/ = saved amazon.in pages
 docs/METHODOLOGY.md                 # every stat method, with formulas
+docs/DECISIONS.md                   # log: difficulties, observations, changed decisions
 research/                           # Python notebooks
 ```
 
@@ -147,9 +148,11 @@ Results must be identical across runs for the same input.
 **B3. Change-point (changepoint.ts)**
 - Reviews sorted by date; candidate change points are bucket boundaries with
   ≥ 30 reviews on each side.
-- **Stratified by star rating by default** (added 2026-11-15): star filters
-  (needed past Amazon's 100-review cap) change the star mix over time, and in
-  simulation an unstratified test then falsely flags 89% of no-change series.
+- **Stratified by star rating only when star-filtered views were collected**
+  (2026-11-15): star filters (needed past Amazon's 100-review cap) change the star
+  mix over time, and in simulation an unstratified test then falsely flags 89% of
+  no-change series. Without filters, stratifying would hide a theme rising
+  together with low-star reviews (DECISIONS #19), so the plain LR test is used.
 - Statistic with one stratum: log-likelihood ratio
   `LR(τ) = ℓ(k_1, n_1) + ℓ(k_2, n_2) − ℓ(k_1 + k_2, n_1 + n_2)`,
   `ℓ(k, n) = k·log(k/n) + (n−k)·log(1 − k/n)` with `0·log 0 = 0`.
@@ -170,10 +173,16 @@ Results must be identical across runs for the same input.
   adjusted q-values (monotone, capped at 1). `significant = q ≤ 0.10`.
 
 **B5. Clustering and labels (themes/)**
-- Sentences: split on `.!?` and newlines; drop sentences with < 3 words.
-- Embeddings: all-MiniLM-L6-v2, mean-pooled, L2-normalised (384-d).
+- Sentences: title + body, split on `.!?।` and newlines; drop sentences with < 3
+  words. Hindi-script or romanised-Hindi sentences (word-list heuristic) are
+  dropped; a review with no English sentence is excluded and counted.
+- Embeddings: all-MiniLM-L6-v2 (English, q8, 23 MB, bundled via
+  `npm run fetch-model`), mean-pooled, L2-normalised (384-d), cached per review
+  in IndexedDB. Runs in a Web Worker started by the side panel.
 - k-means++ (cosine on normalised vectors), seeded, `k ∈ [3, 8]` chosen by
-  mean silhouette; 10 restarts per k, max 100 iterations.
+  mean silhouette on a seeded sample of ≤ 500 sentences; 10 restarts per k
+  (lowest inertia kept), max 100 iterations; needs ≥ 30 sentences.
+- Theme indicator per review: `x_i = 1` if any of its sentences is in the cluster.
 - c-TF-IDF: `w(t, c) = tf(t, c) · log(1 + A / f(t))`, `tf` = term count in the
   concatenated sentences of class c, `f(t)` = count of t across all classes,
   `A` = mean words per class. English stop words removed. Label = top 3 terms.
@@ -232,12 +241,17 @@ Results must be identical across runs for the same input.
 - Every function in `src/stats/` has unit tests with hand-computed expected
   values; show the arithmetic in test comments.
 - Update `docs/METHODOLOGY.md` whenever a stat method is added or changed.
+- **Log every difficulty, surprising observation and changed decision in
+  `docs/DECISIONS.md`** (difficulty / observation → decision → evidence), in the
+  same commit as the change. Keep its numbering going.
 - Update the Status section below at the end of each phase.
 
 ## Commands
 - `npm run dev` — dev build with HMR
 - `npm run build` — type-check + production build to `dist/`
 - `npm test` — Vitest
+- `npm run fetch-model` — once per checkout: downloads MiniLM into `models/`
+  (git-ignored; pinned commit + SHA-256). `npm run build` fails without it.
 - `npm run build:fixtures` — dev-only build ("Real Deal (fixtures)") whose side
   panel saves the current amazon.in page to Downloads as a test fixture, with
   name/address blanked. Move files into `tests/fixtures/`, scan for personal
@@ -269,7 +283,10 @@ Results must be identical across runs for the same input.
 - [x] Phase 3 — stats core (bucket, intervals, changepoint, fdr): star-stratified
   CMH change-point test; null FPR 0.038 (plain) / 0.054 (stratified), star-mix
   trap 0.890 → 0.064, power at n = 300 for 0.10 → 0.25: 0.850 / 0.874
-- [ ] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end
+- [x] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end:
+  English MiniLM in a worker (offline, 48.8 MB build), Hinglish excluded,
+  conditional star stratification, debug list in the side panel. Not yet
+  verified in Chrome.
 - [ ] Phase 5 — Gemini Nano labels + narrative
 - [ ] Phase 6 — trends UI
 - [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)

@@ -11,9 +11,11 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:fixtures": "tsc --noEmit && vite build --mode fixtures",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fetch-model": "node scripts/fetch-model.mjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.3.2",
     "idb": "^8.0.4",
     "preact": "^11.1.1"
   },

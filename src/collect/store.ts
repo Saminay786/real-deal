@@ -24,14 +24,23 @@ export interface StoredView {
   updatedAt: string;
 }
 
+/** Cached sentence embeddings for one review (recomputed if the sentences or model change). */
+export interface StoredEmbedding {
+  reviewId: string;
+  model: string;
+  sentences: string[];
+  vectors: Float32Array[];
+}
+
 interface RealDealDB extends DBSchema {
   reviews: { key: string; value: StoredReview; indexes: { asin: string } };
   products: { key: string; value: ProductMeta };
   views: { key: [string, string]; value: StoredView; indexes: { asin: string } };
+  embeddings: { key: string; value: StoredEmbedding };
 }
 
 export const DB_NAME = 'real-deal';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type Db = IDBPDatabase<RealDealDB>;
 
@@ -47,8 +56,29 @@ export function openStore(name: string = DB_NAME): Promise<Db> {
         const views = db.createObjectStore('views', { keyPath: ['asin', 'key'] });
         views.createIndex('asin', 'asin');
       }
+      if (oldVersion < 3) {
+        db.createObjectStore('embeddings', { keyPath: 'reviewId' });
+      }
     },
   });
+}
+
+/** Cached embeddings by review ID (missing ones are absent from the map). */
+export async function getEmbeddings(db: Db, reviewIds: readonly string[]): Promise<Map<string, StoredEmbedding>> {
+  const tx = db.transaction('embeddings', 'readonly');
+  const out = new Map<string, StoredEmbedding>();
+  for (const id of reviewIds) {
+    const e = await tx.store.get(id);
+    if (e) out.set(id, e);
+  }
+  await tx.done;
+  return out;
+}
+
+export async function putEmbeddings(db: Db, rows: readonly StoredEmbedding[]): Promise<void> {
+  const tx = db.transaction('embeddings', 'readwrite');
+  for (const r of rows) await tx.store.put(r);
+  await tx.done;
 }
 
 /** Records reviews captured while `view` was open; IDs are merged without duplicates. */

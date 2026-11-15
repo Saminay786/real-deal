@@ -7,8 +7,30 @@ import { asinFromPath, pageType, type PageType } from '../content/page';
 import { isCollectionUpdated, isLoadProgress, type LoadViewCommand } from '../messages';
 import { CollectionCard } from './CollectionCard';
 import { FixtureSaver } from './FixtureSaver';
+import type { WorkerRequest, WorkerResponse } from '../themes/embed.worker';
 import { PlannerCard, type LoadState } from './PlannerCard';
+import { ThemesCard, type ThemesState } from './ThemesCard';
 import './style.css';
+
+/** Runs the theme analysis in a Web Worker; the worker is discarded afterwards to free memory. */
+function runThemes(asin: string, onState: (s: ThemesState) => void): void {
+  const worker = new Worker(new URL('../themes/embed.worker.ts', import.meta.url), { type: 'module' });
+  onState({ kind: 'running', stage: 'loading-model', done: 0, total: 1 });
+  worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+    const m = e.data;
+    if (m.type === 'progress') onState({ kind: 'running', stage: m.stage, done: m.done, total: m.total });
+    else {
+      onState(m.type === 'result' ? { kind: 'done', analysis: m.analysis } : { kind: 'error', message: m.message });
+      worker.terminate();
+    }
+  };
+  worker.onerror = (e) => {
+    onState({ kind: 'error', message: e.message || 'worker failed to start' });
+    worker.terminate();
+  };
+  const req: WorkerRequest = { type: 'analyze', asin };
+  worker.postMessage(req);
+}
 
 interface TabInfo {
   tabId: number | null;
@@ -35,6 +57,7 @@ function App() {
   const [summary, setSummary] = useState<CollectionSummary | null>(null);
   const [progress, setProgress] = useState<Map<string, ViewProgress>>(new Map());
   const [load, setLoad] = useState<LoadState>(IDLE);
+  const [themes, setThemes] = useState<{ asin: string; state: ThemesState } | null>(null);
 
   const refresh = useCallback(async () => {
     const info = await activeTabInfo();
@@ -104,6 +127,14 @@ function App() {
             onStop={() => void send('rd:stop-load')}
             onOpen={open}
             allCollected={summary.totalOnAmazon !== null && summary.captured >= summary.totalOnAmazon}
+          />
+          <ThemesCard
+            state={themes && themes.asin === tab.asin ? themes.state : { kind: 'idle' }}
+            canRun={summary.minimumMet && !(themes?.asin === tab.asin && themes.state.kind === 'running')}
+            onRun={() => {
+              const asin = tab.asin;
+              if (asin) runThemes(asin, (state) => setThemes({ asin, state }));
+            }}
           />
         </>
       ) : (
