@@ -13,7 +13,12 @@ export function CollectionCard({ s, onReviewsPage }: { s: CollectionSummary; onR
       <h2>Reviews collected</h2>
       <p class="big">
         <strong>{fmt(s.usable)}</strong> review{s.usable === 1 ? '' : 's'} captured
-        {s.totalOnAmazon !== null && <span class="muted"> of {fmt(s.totalOnAmazon)} on Amazon</span>}
+        {s.totalOnAmazon !== null && s.totalOnAmazon > 0 && (
+          <span class="muted">
+            {' '}
+            of {fmt(s.totalOnAmazon)} on Amazon ({Math.min(100, Math.round((100 * s.captured) / s.totalOnAmazon))}%)
+          </span>
+        )}
       </p>
       <p>
         {s.months > 0 ? (

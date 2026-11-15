@@ -83,3 +83,85 @@ h2 {
 .todo .muted {
   font-weight: 400;
 }
+
+.card + .card {
+  margin-top: 10px;
+}
+
+.warn {
+  color: #cf222e;
+}
+
+button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: #0969da;
+  border-color: #0969da;
+  color: #fff;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+.loadrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.next {
+  margin: 8px 0;
+}
+
+.plan {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.plan li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.plan li.current {
+  background: color-mix(in srgb, #0969da 12%, transparent);
+}
+
+.ico.capped,
+.ico.complete {
+  color: var(--ok);
+}
+
+.ico.partial {
+  color: var(--todo);
+}

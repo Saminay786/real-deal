@@ -6,7 +6,9 @@ import {
   clearProduct,
   getProductMeta,
   getReviews,
+  getViewProgress,
   openStore,
+  recordView,
   updateProductMeta,
 } from '../../src/collect/store';
 import { extractReviews } from '../../src/content/amazon/extract';
@@ -62,6 +64,19 @@ describe('review store', () => {
     await updateProductMeta(db, 'B0CCM8L54V', 212); // e.g. "1 star only" filter
     await updateProductMeta(db, 'B0CCM8L54V', null);
     expect((await getProductMeta(db, 'B0CCM8L54V'))?.totalReviews).toBe(1283);
+  });
+
+  it('records reviews per view without duplicates', async () => {
+    const db = await freshDb();
+    const recent = { sort: 'recent', star: 'all', reviewer: 'all' } as const;
+    const oneStar = { sort: 'recent', star: 1, reviewer: 'all' } as const;
+    await recordView(db, 'B0CCM8L54V', recent, ['R1', 'R2'], 1283);
+    await recordView(db, 'B0CCM8L54V', recent, ['R2', 'R3'], null); // R2 again; total kept
+    await recordView(db, 'B0CCM8L54V', oneStar, ['R9'], 212);
+    const p = await getViewProgress(db, 'B0CCM8L54V');
+    expect(p.get('recent|all|all')).toEqual({ seen: 3, total: 1283 });
+    expect(p.get('recent|1|all')).toEqual({ seen: 1, total: 212 });
+    expect((await getViewProgress(db, 'B0GLG5JSHK')).size).toBe(0);
   });
 
   it('clears one product', async () => {

@@ -48,6 +48,10 @@ export const REVIEWS = {
   helpful: ['[data-hook="helpful-vote-statement"]'],
   /** "1,283 customer reviews" (changes when a star filter is applied). */
   totalReviews: ['[data-hook="cr-filter-info-review-rating-count"]'],
+  /** "Show 10 more reviews" button (AJAX, appends to the list). */
+  showMore: ['a[data-hook="show-more-button"]', '#cm_cr-pagination_bar .cm-cr-show-more a', '#cm_cr-pagination_bar a'],
+  /** Amazon's robot check. If present, stop immediately. */
+  captcha: ['form[action*="validateCaptcha"]', '#captchacharacters', 'form[action*="/errors/validateCaptcha"]'],
 } as const;
 
 /** Header elements showing the signed-in user's name and delivery address. Blanked in fixtures. */

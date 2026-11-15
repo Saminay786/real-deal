@@ -4,6 +4,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { ProductMeta, Review } from '../types';
+import { viewKey, type ReviewView, type ViewProgress } from './views';
 
 export interface StoredReview extends Review {
   reviewId: string;
@@ -12,24 +13,73 @@ export interface StoredReview extends Review {
   firstSeenAt: string;
 }
 
+/** Which reviews were captured in one sort/filter view of a product. */
+export interface StoredView {
+  asin: string;
+  key: string;
+  view: ReviewView;
+  reviewIds: string[];
+  /** Reviews Amazon said matched this view, if shown. */
+  total: number | null;
+  updatedAt: string;
+}
+
 interface RealDealDB extends DBSchema {
   reviews: { key: string; value: StoredReview; indexes: { asin: string } };
   products: { key: string; value: ProductMeta };
+  views: { key: [string, string]; value: StoredView; indexes: { asin: string } };
 }
 
 export const DB_NAME = 'real-deal';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export type Db = IDBPDatabase<RealDealDB>;
 
 export function openStore(name: string = DB_NAME): Promise<Db> {
   return openDB<RealDealDB>(name, DB_VERSION, {
-    upgrade(db) {
-      const reviews = db.createObjectStore('reviews', { keyPath: 'reviewId' });
-      reviews.createIndex('asin', 'asin');
-      db.createObjectStore('products', { keyPath: 'asin' });
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        const reviews = db.createObjectStore('reviews', { keyPath: 'reviewId' });
+        reviews.createIndex('asin', 'asin');
+        db.createObjectStore('products', { keyPath: 'asin' });
+      }
+      if (oldVersion < 2) {
+        const views = db.createObjectStore('views', { keyPath: ['asin', 'key'] });
+        views.createIndex('asin', 'asin');
+      }
     },
   });
+}
+
+/** Records reviews captured while `view` was open; IDs are merged without duplicates. */
+export async function recordView(
+  db: Db,
+  asin: string,
+  view: ReviewView,
+  reviewIds: readonly string[],
+  total: number | null,
+  now: Date = new Date(),
+): Promise<StoredView> {
+  const key = viewKey(view);
+  const prev = await db.get('views', [asin, key]);
+  const ids = new Set(prev?.reviewIds ?? []);
+  for (const id of reviewIds) ids.add(id);
+  const rec: StoredView = {
+    asin,
+    key,
+    view,
+    reviewIds: [...ids],
+    total: total ?? prev?.total ?? null,
+    updatedAt: now.toISOString(),
+  };
+  await db.put('views', rec);
+  return rec;
+}
+
+/** Progress per view key for one product. */
+export async function getViewProgress(db: Db, asin: string): Promise<Map<string, ViewProgress>> {
+  const rows = await db.getAllFromIndex('views', 'asin', asin);
+  return new Map(rows.map((r) => [r.key, { seen: r.reviewIds.length, total: r.total }]));
 }
 
 /**
@@ -86,9 +136,11 @@ export function getProductMeta(db: Db, asin: string): Promise<ProductMeta | unde
 
 /** Deletes everything stored for one product. */
 export async function clearProduct(db: Db, asin: string): Promise<void> {
-  const tx = db.transaction(['reviews', 'products'], 'readwrite');
+  const tx = db.transaction(['reviews', 'products', 'views'], 'readwrite');
   const reviews = tx.objectStore('reviews');
   for (const key of await reviews.index('asin').getAllKeys(asin)) await reviews.delete(key);
   await tx.objectStore('products').delete(asin);
+  const views = tx.objectStore('views');
+  for (const key of await views.index('asin').getAllKeys(asin)) await views.delete(key);
   await tx.done;
 }

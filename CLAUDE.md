@@ -21,10 +21,16 @@ amazon.in only until told otherwise.
   telemetry. The built extension makes **zero outbound network requests**. All
   models (MiniLM, ONNX runtime WASM) are bundled under `models/` and loaded
   from the extension package.
-- **Read only what the user views.** Never fetch Amazon pages, never
-  auto-paginate, never click on the user's behalf. Reviews are collected only
-  from pages the user opens, including pages they reach via Amazon's own AJAX
-  pagination.
+- **Read only what the user views.** Never fetch Amazon pages or make requests
+  to Amazon. Reviews are collected only from pages the user opens, including
+  pages they reach via Amazon's own AJAX pagination.
+- **One exception, chosen by the user on 2026-11-15: "Load this view".** When
+  the user presses that button, the content script clicks Amazon's own "Show 10
+  more" button in the user's active tab, every 2–4 s, until Amazon's 100-per-view
+  cap or the end of the list. It stops on Stop, a CAPTCHA, two clicks with no new
+  reviews, or the tab being hidden. It never starts by itself, never opens views
+  on its own, and never runs across views or products. The planner's "Open"
+  only navigates the user's tab when they click it.
 - **LLM = Chrome built-in AI only** (Gemini Nano via `LanguageModel`). Always
   feature-detect with `availability()`. Every feature must work without it
   (c-TF-IDF labels, templated narrative). LLM failure never breaks anything.
@@ -57,9 +63,11 @@ src/
       extract.ts                    # Document -> ProductSnapshot | Review[] | SearchResult[]
       badge.ts                      # pipeline A badge injection
       observer.ts                   # MutationObserver for AJAX review pagination
+      loader.ts                     # user-started "Load this view" (clicks Show 10 more)
       search.ts                     # pipeline C card badges + reorder (v2)
   collect/store.ts                  # IndexedDB: reviews by ASIN, embeddings by reviewId
   collect/summary.ts                # pure: collection progress for the side panel
+  collect/views.ts                  # pure: sort/filter "views", 17-view plan, status
   messages.ts                       # content <-> service worker <-> side panel messages
   debug.ts                          # DEBUG flag + logger
   themes/
@@ -255,6 +263,9 @@ Results must be identical across runs for the same input.
   fixtures), MutationObserver for "Show 10 more", IndexedDB store (dedupe by
   reviewId, written by the service worker in the extension origin), live
   collection card; 72 tests pass
+- [x] Phase 2b — collection planner: tracks 17 sort/star/verified views per
+  product (read from the URL), coverage %, "Open" next view, and the
+  user-started "Load this view" button; 117 tests pass
 - [x] Phase 3 — stats core (bucket, intervals, changepoint, fdr): star-stratified
   CMH change-point test; null FPR 0.038 (plain) / 0.054 (stratified), star-mix
   trap 0.890 → 0.064, power at n = 300 for 0.10 → 0.25: 0.850 / 0.874
