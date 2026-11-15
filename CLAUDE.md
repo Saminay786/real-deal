@@ -132,18 +132,30 @@ Results must be identical across runs for the same input.
 **B2. Intervals (intervals.ts)**
 - Wilson 95% interval for each bucket share `k/n`, z = 1.96.
 - Newcombe (hybrid Wilson) 95% interval for `after − before` difference.
+- With star strata: star-mix-adjusted difference by direct standardisation
+  `Σ_s w_s (p_s,after − p_s,before)`, `w_s` = stratum share, Wald CI (falls back
+  to Newcombe when only one stratum has reviews on both sides).
 
 **B3. Change-point (changepoint.ts)**
 - Reviews sorted by date; candidate change points are bucket boundaries with
   ≥ 30 reviews on each side.
-- For split τ: log-likelihood ratio
+- **Stratified by star rating by default** (added 2026-11-15): star filters
+  (needed past Amazon's 100-review cap) change the star mix over time, and in
+  simulation an unstratified test then falsely flags 89% of no-change series.
+- Statistic with one stratum: log-likelihood ratio
   `LR(τ) = ℓ(k_1, n_1) + ℓ(k_2, n_2) − ℓ(k_1 + k_2, n_1 + n_2)`,
   `ℓ(k, n) = k·log(k/n) + (n−k)·log(1 − k/n)` with `0·log 0 = 0`.
-- Statistic `T = max_τ LR(τ)`; `changeAt` = argmax boundary.
-- p-value by permutation: shuffle the `x_i` across reviews (dates fixed),
-  `B = 999`, `p = (1 + #{T_b ≥ T}) / (B + 1)`.
-- Validation tests: null FPR at α = 0.05 over ≥ 500 simulated null series must
-  be ≤ 0.07; power for a planted shift 0.10 → 0.25 at n = 300 must be ≥ 0.80.
+- Statistic with several strata: Cochran–Mantel–Haenszel
+  `CMH(τ) = (Σ_s (O_s − E_s))² / Σ_s V_s`, `O_s = k_s,after`,
+  `E_s = n_s,after K_s / N_s`, `V_s = n_s,after n_s,before K_s (N_s−K_s) / (N_s² (N_s−1))`.
+  (A per-stratum LR sum was tried first: power fell to 0.60.)
+- `T = max_τ` of the statistic; `changeAt` = argmax boundary.
+- p-value by permutation: shuffle the `x_i` **within each star level** (dates
+  fixed), `B = 999`, `p = (1 + #{T_b ≥ T}) / (B + 1)`.
+- Validation tests (500 series each): null FPR at α = 0.05 ≤ 0.07 both
+  unstratified and stratified; star-mix trap FPR ≤ 0.07 stratified (and > 0.5
+  unstratified, to show the trap is real); power for 0.10 → 0.25 at n = 300
+  ≥ 0.80 both ways.
 
 **B4. FDR (fdr.ts)**
 - Benjamini–Hochberg across all themes of one product at `q = 0.10`. Report
@@ -243,7 +255,9 @@ Results must be identical across runs for the same input.
   fixtures), MutationObserver for "Show 10 more", IndexedDB store (dedupe by
   reviewId, written by the service worker in the extension origin), live
   collection card; 72 tests pass
-- [ ] Phase 3 — stats core (bucket, intervals, changepoint, fdr)
+- [x] Phase 3 — stats core (bucket, intervals, changepoint, fdr): star-stratified
+  CMH change-point test; null FPR 0.038 (plain) / 0.054 (stratified), star-mix
+  trap 0.890 → 0.064, power at n = 300 for 0.10 → 0.25: 0.850 / 0.874
 - [ ] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end
 - [ ] Phase 5 — Gemini Nano labels + narrative
 - [ ] Phase 6 — trends UI

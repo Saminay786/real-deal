@@ -35,6 +35,173 @@ more" itself. That makes the sample depend on how the user browsed:
   star ratings (11,413). Star filters lower the number shown, so the largest
   value seen is kept.
 
+## Theme trends: overview
+
+For one product and one theme (say "adhesive stopped sticking"), each usable
+review $i$ has a date and an indicator
+
+$$x_i = \begin{cases} 1 & \text{if any sentence of review } i \text{ belongs to the theme} \\ 0 & \text{otherwise.} \end{cases}$$
+
+The question is whether the share of reviews mentioning the theme changed at
+some point in time. The pipeline:
+
+1. **Bucket** reviews by month so that each point on the chart has enough data.
+2. **Intervals** around each month's share, and around the before/after difference.
+3. **Change-point test**: find the most likely change and get a permutation p-value,
+   comparing reviews only within the same star level.
+4. **False discovery rate** across all themes of the product.
+
+## Monthly buckets
+
+Reviews are sorted by date and grouped by calendar month. Thin months are
+merged so every bucket has $n \ge 15$ reviews:
+
+- Walk through the months in order, adding each to the open bucket. Close the
+  bucket as soon as $n \ge 15$.
+- If the last bucket ends with $n < 15$, merge it into the previous one.
+- Months with no reviews are absorbed into the bucket that spans them.
+
+**Example.** Jan 10, Feb 10, Mar 20, Apr 0, May 5 reviews gives the buckets
+[Jan–Feb] $n=20$ and [Mar–May] $n=25$. May's 5 reviews are too few alone, so
+they join March.
+
+The analysis needs at least 100 reviews and at least 3 buckets.
+
+## Intervals
+
+**Wilson score interval** for a bucket share $\hat p = k/n$ at $z = 1.96$:
+
+$$\frac{\hat p + \frac{z^2}{2n}}{1 + \frac{z^2}{n}} \;\pm\; \frac{z\sqrt{\frac{\hat p(1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}$$
+
+Unlike the textbook $\hat p \pm z\sqrt{\hat p(1-\hat p)/n}$, it never goes below 0
+or above 1, and it keeps close to 95% coverage when $\hat p$ is near 0, which is
+common for themes. Check: $81/263 \to [0.2553, 0.3662]$, as in Newcombe (1998).
+
+**Newcombe hybrid score interval** (Newcombe 1998, method 10) for the change
+$d = \hat p_2 - \hat p_1$ (after − before), from the two Wilson intervals
+$[l_1, u_1]$ and $[l_2, u_2]$:
+
+$$\Big[\, d - \sqrt{(\hat p_2 - l_2)^2 + (u_1 - \hat p_1)^2},\;\; d + \sqrt{(u_2 - \hat p_2)^2 + (\hat p_1 - l_1)^2} \,\Big]$$
+
+Check: $56/70 - 48/80 = 0.2$, interval $[0.0524, 0.3339]$, as in Newcombe (1998).
+
+**Star-mix-adjusted difference.** When reviews come from several star levels
+$s$, the displayed effect is standardised to the overall star mix:
+
+$$d_{\text{adj}} = \sum_s w_s\,(\hat p_{s,\text{after}} - \hat p_{s,\text{before}}), \qquad w_s = \frac{n_s}{\sum_t n_t}$$
+
+$$\operatorname{Var}(d_{\text{adj}}) = \sum_s w_s^2 \left(\frac{\hat p_{s,a}(1-\hat p_{s,a})}{n_{s,a}} + \frac{\hat p_{s,b}(1-\hat p_{s,b})}{n_{s,b}}\right)$$
+
+with a Wald 95% interval. Star levels with no reviews on one side say nothing
+about change and are dropped. If only one level remains, the Newcombe interval
+is used.
+
+## Change-point test
+
+**Candidates.** A change can only happen at a bucket boundary $\tau$ (the index
+of the first review after it) with at least 30 reviews on each side.
+
+**Statistic with one stratum: binomial likelihood ratio.** With $k_1$ of $n_1$
+reviews before $\tau$ and $k_2$ of $n_2$ after mentioning the theme, and
+$\ell(k,n) = k\log\frac{k}{n} + (n-k)\log\left(1-\frac{k}{n}\right)$ (with $0 \log 0 = 0$):
+
+$$\mathrm{LR}(\tau) = \ell(k_1, n_1) + \ell(k_2, n_2) - \ell(k_1 + k_2,\, n_1 + n_2).$$
+
+This compares "one share before, another after" with "one share throughout".
+
+**Statistic with star strata: Cochran–Mantel–Haenszel.** For each star level
+$s$ with $N_s$ reviews, $K_s$ of them mentioning the theme, and
+$n_{s,b}, n_{s,a}$ reviews before and after $\tau$:
+
+$$O_s = k_{s,a}, \quad E_s = \frac{n_{s,a} K_s}{N_s}, \quad V_s = \frac{n_{s,a}\, n_{s,b}\, K_s (N_s - K_s)}{N_s^2 (N_s - 1)}$$
+
+$$\mathrm{CMH}(\tau) = \frac{\left(\sum_s (O_s - E_s)\right)^2}{\sum_s V_s}.$$
+
+$E_s$ is how many after-$\tau$ reviews in star level $s$ would mention the
+theme if nothing changed, and $V_s$ is the hypergeometric variance of $O_s$.
+Each star level is compared only with itself, and the evidence is summed in
+one direction. A star level with reviews on only one side contributes nothing.
+
+**Scan.** $T = \max_\tau$ of the statistic. The maximising $\tau$ is reported as
+the change point.
+
+**p-value by permutation.** Because $T$ is a maximum over many $\tau$, its null
+distribution is not a standard $\chi^2$. Under "no change", the order of the
+$x_i$ in time is arbitrary *within each star level*. So we:
+
+1. shuffle the $x_i$ among reviews of the same star level, keeping dates and stars fixed;
+2. recompute $T_b$;
+3. repeat $B = 999$ times, seeded.
+
+$$p = \frac{1 + \#\{b : T_b \ge T\}}{B + 1}.$$
+
+The smallest possible value is $1/1000$.
+
+### Why stratify: the star-filter trap
+
+Amazon shows at most 100 reviews per sort/filter, so going back in time needs
+star filters. Suppose a theme is mentioned in 40% of 1★ reviews and 10% of 5★
+reviews, constant over time, but the collected reviews are 80% 1★ in the first
+six months and 80% 5★ afterwards. The pooled share falls from
+$0.8(0.4) + 0.2(0.1) = 0.34$ to $0.2(0.4) + 0.8(0.1) = 0.16$, with nothing real behind it.
+
+### Validation by simulation
+
+All with $n = 300$ reviews over 12 months, $\alpha = 0.05$, 500 simulated
+series per row (Monte Carlo error about ±0.02):
+
+| Scenario | Unstratified (LR) | Stratified (CMH) | Requirement |
+|---|---|---|---|
+| No change, share 0.15 | 0.038 | 0.054 | ≤ 0.07 |
+| Star-filter trap (no real change) | **0.890** | **0.064** | ≤ 0.07 |
+| Planted shift 0.10 → 0.25 at month 7 (power) | 0.850 | 0.874 | ≥ 0.80 |
+
+A first stratified version summed a separate LR for each star level. It
+controlled the trap, but its power fell to 0.60: it tests for *any* change in
+*any* of 5 star levels, five degrees of freedom instead of one. CMH asks a
+single question, a common direction of change across star levels, and keeps
+full power.
+
+**Power by sample size** (stratified CMH, 300 series per cell, $B = 499$,
+shift at month 7 of 12):
+
+| Theme share before → after | n = 100 | 150 | 300 | 600 |
+|---|---|---|---|---|
+| 0.10 → 0.10 (no change) | 0.06 | 0.06 | 0.08 | 0.05 |
+| 0.10 → 0.15 | 0.10 | 0.12 | 0.15 | 0.31 |
+| 0.10 → 0.20 | 0.20 | 0.33 | 0.47 | 0.85 |
+| 0.10 → 0.25 | 0.38 | 0.63 | 0.83 | 0.98 |
+| 0.10 → 0.30 | 0.61 | 0.84 | 0.99 | 1.00 |
+
+With the minimum of 100 reviews, only large shifts (about a tripling) are
+detected reliably. With 300 or more, a 2.5× increase usually is. "No
+significant change" with few reviews means "not enough evidence", not "no change".
+
+The test finds the planted month exactly in 56% of runs. Other runs pick a
+neighbouring boundary, which is expected when bucket shares are noisy.
+
+**Limitations.**
+- One change point per theme. Two changes (up, then back down) may be missed.
+- Opposite changes in different star levels cancel in CMH.
+- Shuffling assumes reviews are exchangeable within a star level when nothing
+  changes. Bursts of related reviews, such as a promotion, break this.
+
+## False discovery rate
+
+Each product has several themes, each with its own p-value. Testing them all at
+0.05 would flag some by chance. Benjamini–Hochberg controls the expected share
+of false discoveries among flagged themes at $q^* = 0.10$.
+
+With $m$ p-values sorted ascending, $p_{(1)} \le \dots \le p_{(m)}$:
+
+$$q_{(i)} = \min_{j \ge i} \frac{m\, p_{(j)}}{j}, \quad \text{capped at } 1.$$
+
+A theme is flagged as significant if $q \le 0.10$.
+
+**Example.** $p = (0.01, 0.04, 0.03, 0.005)$, $m = 4$. Sorted, the values
+$m\,p/\text{rank}$ are $0.02, 0.02, 0.04, 0.04$. Taking the running minimum from
+the top gives $q = (0.02, 0.04, 0.04, 0.02)$ in input order, so all four are flagged.
+
 ## Rating credible interval
 
 **Question.** Amazon shows an average rating such as 4.4★. How sure can we be
