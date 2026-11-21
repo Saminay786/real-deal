@@ -92,11 +92,14 @@ export function analyzeThemes(
 
   // Which themes each review mentions, and its sentences per theme (for exemplars).
   const byReview = new Map<string, Map<number, string[]>>();
+  // How typical each sentence is of its theme (cosine to the theme centre), for exemplars.
+  const typicality = new Map<string, number>();
   sentences.forEach((s, i) => {
     const t = labels[i] ?? 0;
     const m = byReview.get(s.reviewId) ?? new Map<number, string[]>();
     m.set(t, [...(m.get(t) ?? []), s.text]);
     byReview.set(s.reviewId, m);
+    typicality.set(`${t}\u0000${s.text}`, dot(vectors[i] as Vec, centroids[t] as Vec));
   });
 
   const analysed = reviews.filter((r) => r.reviewId && r.date && !nonEnglish.has(r.reviewId));
@@ -135,16 +138,25 @@ export function analyzeThemes(
     const adjusted = stratify ? standardizedDiff(v.strata) : null;
     const effect = adjusted && adjusted.strataUsed >= 2 ? adjusted : pooled;
 
-    // Exemplars: theme sentences from the reviews nearest the change, either side.
+    // Exemplars: the theme's MOST TYPICAL sentences on each side of the change.
+    // (Previously: sentences from reviews nearest the change date, which showed
+    // off-topic text like "Online warranty is available" under "Chain lock
+    // quality", DECISIONS #42.)
     const sorted = b.value.sorted as (Obs & { reviewId: string })[];
     const n = opts.exemplars ?? 3;
-    const pick = (from: number, step: number) => {
-      const out: string[] = [];
-      for (let i = from; i >= 0 && i < sorted.length && out.length < n; i += step) {
-        const s = byReview.get(sorted[i]?.reviewId ?? '')?.get(theme.id)?.[0];
-        if (s) out.push(s);
+    const pick = (from: number, to: number) => {
+      const pool: { text: string; sim: number }[] = [];
+      for (let i = from; i < to; i++) {
+        for (const text of byReview.get(sorted[i]?.reviewId ?? '')?.get(theme.id) ?? []) {
+          pool.push({ text, sim: typicality.get(`${theme.id}\u0000${text}`) ?? 0 });
+        }
       }
-      return out;
+      const seen = new Set<string>();
+      return pool
+        .sort((p, q) => q.sim - p.sim)
+        .map((p) => p.text)
+        .filter((t) => (seen.has(t) ? false : (seen.add(t), true)))
+        .slice(0, n);
     };
 
     raw.push({
@@ -156,7 +168,7 @@ export function analyzeThemes(
       diff: effect.diff,
       diffCi: effect.ci,
       pValue: v.pValue,
-      exemplars: { before: pick(v.tau - 1, -1), after: pick(v.tau, 1) },
+      exemplars: { before: pick(0, v.tau), after: pick(v.tau, sorted.length) },
       order: raw.length,
     });
   }

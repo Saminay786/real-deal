@@ -54,6 +54,7 @@ cause for each of them.)
 | 39 | "What's the dashed line and the dot?" | Chart marks were explained only in a collapsed legend, with no value on the dot and no direction labels. It was designed by people who already knew the meanings. |
 | 40 | "Sometimes 3 bands, sometimes 2" | The ruler and the range band were both grey rounded strips; where the ruler stuck out it looked like extra bands. |
 | 41 | Repeated legends, messy list | Each clarification was added inside every theme block and reviewed for one theme, never for the whole list. |
+| 42 | Examples off-topic; % hid 3-vs-6 counts | Exemplars were picked by date proximity to the change, not typicality. The broad cluster was named from its centre only. Counts were not shown. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -820,3 +821,31 @@ than polarity.
   symbols, plus "Box crosses the 0 line → could just be luck". The verdict rule is
   `verdictOf` (tested).
 - **Rule.** Explain a symbol once per screen, not once per item.
+
+### 42. "Chain lock quality": examples didn't match the name, and percentages hid tiny counts
+- **What happened.** The user asked about "Chain lock quality" (negative): 5% → 13%
+  since Mar 2025. Its "before" examples were "Online warranty is available",
+  "Stopped working after 15 days" and "inner packaging … scratches", and its
+  "after" examples included "did not come with wrapping" and "Packing could be
+  improved". Only one sentence was about the chain lock.
+- **Why it happened.**
+  1. Exemplars were taken from the reviews **nearest in date to the change
+     point**: the first theme sentence of whichever reviews sat there. They
+     represent the date, not the theme.
+  2. The cluster is genuinely broad (chain lock + packaging + warranty). Its AI name
+     came from the 8 sentences closest to the centre, which happened to be about
+     the chain lock, so the name overstates how specific the theme is.
+  3. 5% → 13% is **3 of 60 reviews → 6 of 45**, but only percentages were shown,
+     so a 3-review difference looked like a trend.
+- **Why it wasn't caught earlier.** Synthetic tests have one identical sentence per
+  topic, so any exemplar choice looks right. On real data we had only read
+  exemplars of coherent themes ("received, ordered, qty").
+- **Decision.**
+  1. Exemplars are the theme's **most typical sentences** (highest cosine similarity to
+     the theme centre) among the reviews on each side, de-duplicated, and labelled
+     "Most typical sentences before/after".
+  2. Every theme line shows counts: **"5% (3 of 60 reviews) → 13% (6 of 45) since Mar
+     2025, +8 points"**.
+- **Open.** Broad clusters still get specific names. Options: give Nano a random
+  sample of the cluster (not just the centre) so the name reflects its breadth, or
+  show each theme's coherence (within-cluster similarity) and flag broad ones.

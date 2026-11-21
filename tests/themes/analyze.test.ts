@@ -63,6 +63,9 @@ describe('analyzeThemes', () => {
     expect(adhesive?.changeAt).toBe('2025-07-01');
     expect(adhesive?.after.share).toBeGreaterThan(adhesive?.before.share ?? 1);
     expect(adhesive?.exemplars.after.length).toBeGreaterThan(0);
+    // Exemplars are the theme's most typical sentences on each side, de-duplicated (DECISIONS #42).
+    expect(adhesive?.exemplars.before).toEqual(['the adhesive stopped sticking to the wall']);
+    expect(adhesive?.exemplars.after).toEqual(['the adhesive stopped sticking to the wall']);
     // Sorted: significant first.
     expect(a.shifts[0]?.themeId).toBe(adhesive?.themeId);
     // Each theme's series covers the 12 months.

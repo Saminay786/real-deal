@@ -86,7 +86,8 @@ function ThemeRow({ s, t }: { s: ShiftResult; t: Theme | undefined }) {
       </div>
       <ThemeChange s={s} />
       <p class="small theme-line">
-        {before}% → {after}% of reviews since {monthName(s.changeAt)} ({signed(d)} points).
+        {before}% ({s.before.k} of {s.before.n} reviews) → {after}% ({s.after.k} of {s.after.n}) since{' '}
+        {monthName(s.changeAt)}, {signed(d)} points.
       </p>
       <details class="small">
         <summary>Details</summary>
@@ -104,13 +105,13 @@ function ThemeRow({ s, t }: { s: ShiftResult; t: Theme | undefined }) {
         </p>
         {(s.exemplars.before.length > 0 || s.exemplars.after.length > 0) && (
           <>
-            <div class="muted">Examples before:</div>
+            <div class="muted">Most typical sentences before:</div>
             <ul>
               {s.exemplars.before.map((x, i) => (
                 <li key={`b${i}`}>“{x}”</li>
               ))}
             </ul>
-            <div class="muted">Examples after:</div>
+            <div class="muted">Most typical sentences after:</div>
             <ul>
               {s.exemplars.after.map((x, i) => (
                 <li key={`a${i}`}>“{x}”</li>
