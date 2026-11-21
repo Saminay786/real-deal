@@ -316,3 +316,23 @@ than polarity.
      Embedding caches recompute automatically because the sentence list changed.
   3. Lesson for fixtures: keep saving them with scripts stripped (privacy and
      offline tests), but add targeted tests for live-only markup.
+
+### 24. URL fragments formed a second junk theme; themes are sensitive to small input changes
+- **Observation.** After #23, "false, vse, automated" disappeared but "video,
+  images, com" appeared. The stored player script also held media URLs. Sentence
+  splitting cut them at dots ("…media-amazon." / "com/images/S/vse-vms-…/video/…"),
+  and the code filter (braces, JSON) did not catch the fragments.
+- **Decision.** The code-like filter also drops URLs and URL fragments
+  (`http:`, `www.`, `/path/`, media file extensions, fragments starting `com/`).
+  Prose that merely says "video and images" or "and/or" is kept (tested).
+- **Observation (stability).** Removing about 13 junk sentences (233 → 220)
+  changed the chosen k from 8 to 7 and regrouped two themes ("Quality of Pants" +
+  "Fabric Softness" became "quality, good, fabric" + "soft, material,
+  comfortable"). Silhouette stayed about 0.13 either way: the clustering has no
+  strongly preferred k on short reviews.
+- **Decision.** Accept for the extension, but **measure stability in the research
+  notebook** (e.g. adjusted Rand index between runs on bootstrap resamples and
+  across seeds), and report it. If unstable, consider a fixed k, a minimum
+  silhouette gap, or merging near-duplicate clusters.
+- **Also seen.** Three themes at p ≈ 0.09–0.11 (q = 0.247), none significant, and
+  again intervals excluding 0 (entry 20, Phase 6 fix pending).

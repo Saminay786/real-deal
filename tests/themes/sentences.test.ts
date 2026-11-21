@@ -6,6 +6,15 @@ describe('isCodeLike', () => {
     expect(isCodeLike('P.when("A", "ready").execute(function(A) { var config = {"isVse":false')).toBe(true);
     expect(isCodeLike('"automated": true, "mediaType": "video"')).toBe(true);
     expect(isCodeLike('x => y && z || w ## @@ ^^ ~~ ``')).toBe(true);
+    // URL fragments left after splitting a stored player URL at its dots
+    expect(isCodeLike('com/images/S/vse-vms-transcoding-artifact-us-east-1-prod/video/abc123')).toBe(true);
+    expect(isCodeLike('https://m.media-amazon.com/images/I/81abc.jpg')).toBe(true);
+    expect(isCodeLike('watch the video at www.example.com today')).toBe(true);
+  });
+
+  it('keeps prose that merely mentions videos, images or "and/or"', () => {
+    expect(isCodeLike('The video and images in the listing were accurate.')).toBe(false);
+    expect(isCodeLike('Use it for keys and/or small frames only')).toBe(false);
   });
 
   it('keeps ordinary review prose, including prices and percentages', () => {

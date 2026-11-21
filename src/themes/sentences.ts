@@ -70,6 +70,8 @@ export interface SentenceSplit {
  */
 export function isCodeLike(s: string): boolean {
   if (/[{}<>]|=>|\bfunction\s*\(|\bP\.when\b|\.execute\(|":\s*(true|false|null|"|\d)/.test(s)) return true;
+  // URLs and URL fragments (sentence splitting cuts URLs at dots: "com/images/S/vse-vms-…").
+  if (/https?:|www\.|\/[\w-]+\/|\.(?:mp4|m3u8|jpe?g|png|webp)\b|^(?:com|in|net)\//i.test(s)) return true;
   const symbols = (s.match(/[^\p{L}\p{N}\s.,!?'’"“”()%₹-]/gu) ?? []).length;
   return symbols / Math.max(1, s.length) > 0.15;
 }
