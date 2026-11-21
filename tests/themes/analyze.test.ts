@@ -67,6 +67,10 @@ describe('analyzeThemes', () => {
     expect(a.shifts[0]?.themeId).toBe(adhesive?.themeId);
     // Each theme's series covers the 12 months.
     expect(a.series.every((s) => s.buckets.length === 12)).toBe(true);
+    // Typical sentences and star mix for labelling: every adhesive review is 1★ here.
+    const t = a.themes.find((x) => x.id === adhesive?.themeId);
+    expect(t?.samples).toEqual(['the adhesive stopped sticking to the wall']);
+    expect(t?.meanRating).toBe(1);
   });
 
   it('stratified by star: blind to a theme that is perfectly tied to one star level (documented limitation)', () => {

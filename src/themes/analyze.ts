@@ -6,7 +6,7 @@ import { changePointFromBuckets } from '../stats/changepoint';
 import { benjaminiHochberg, FDR_Q } from '../stats/fdr';
 import { newcombe, standardizedDiff } from '../stats/intervals';
 import type { Review, ShiftResult, Theme, ThemeSeries } from '../types';
-import { clusterSentences, type ClusterOptions, type Vec } from './cluster';
+import { clusterSentences, dot, type ClusterOptions, type Vec } from './cluster';
 import { ctfidf } from './ctfidf';
 import type { Sentence } from './sentences';
 
@@ -62,19 +62,33 @@ export function analyzeThemes(
 
   const clustering = clusterSentences(vectors, opts);
   if (!clustering.value) return empty(clustering.explanation);
-  const { k, labels } = clustering.value;
+  const { k, labels, centroids } = clustering.value;
 
-  // Labels and theme sizes.
+  // Labels, sizes, most typical sentences (closest to the centroid) and mean stars.
   const docs: string[][] = Array.from({ length: k }, () => []);
   sentences.forEach((s, i) => docs[labels[i] ?? 0]?.push(s.text));
   const terms = ctfidf(docs);
-  const themes: Theme[] = docs.map((d, id) => ({
-    id,
-    label: terms[id]?.terms.join(', ') || `theme ${id + 1}`,
-    labelSource: 'ctfidf',
-    topTerms: terms[id]?.terms ?? [],
-    size: d.length,
-  }));
+  const ratingOf = new Map(reviews.map((r) => [r.reviewId, r.rating]));
+  const themes: Theme[] = docs.map((d, id) => {
+    const members = sentences
+      .map((s, i) => ({ s, i }))
+      .filter(({ i }) => labels[i] === id)
+      .map(({ s, i }) => ({ s, sim: dot(vectors[i] as Vec, centroids[id] as Vec) }))
+      .sort((a, b) => b.sim - a.sim);
+    const samples = [...new Set(members.map((m) => m.s.text))].slice(0, 8);
+    const stars = [...new Set(members.map((m) => m.s.reviewId))]
+      .map((rid) => ratingOf.get(rid))
+      .filter((r): r is number => typeof r === 'number');
+    return {
+      id,
+      label: terms[id]?.terms.join(', ') || `theme ${id + 1}`,
+      labelSource: 'ctfidf',
+      topTerms: terms[id]?.terms ?? [],
+      size: d.length,
+      samples,
+      meanRating: stars.length ? stars.reduce((a, b) => a + b, 0) / stars.length : null,
+    };
+  });
 
   // Which themes each review mentions, and its sentences per theme (for exemplars).
   const byReview = new Map<string, Map<number, string[]>>();

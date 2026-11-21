@@ -8,7 +8,10 @@ import { isCollectionUpdated, isLoadProgress, type LoadViewCommand } from '../me
 import { CollectionCard } from './CollectionCard';
 import { FixtureSaver } from './FixtureSaver';
 import type { WorkerRequest, WorkerResponse } from '../themes/embed.worker';
+import type { ThemeAnalysis } from '../themes/analyze';
+import { createNanoSession, enrichWithNano, nanoAvailability, withoutNano, type AiResult } from '../ai/label';
 import { PlannerCard, type LoadState } from './PlannerCard';
+import { SummaryCard, type AiState } from './SummaryCard';
 import { ThemesCard, type ThemesState } from './ThemesCard';
 import './style.css';
 
@@ -58,6 +61,34 @@ function App() {
   const [progress, setProgress] = useState<Map<string, ViewProgress>>(new Map());
   const [load, setLoad] = useState<LoadState>(IDLE);
   const [themes, setThemes] = useState<{ asin: string; state: ThemesState } | null>(null);
+  const [ai, setAi] = useState<{ asin: string; result: AiResult; state: AiState } | null>(null);
+
+  /** Labels + summary with Gemini Nano. Must run from a click if the model still needs downloading. */
+  const runNano = async (asin: string, analysis: ThemeAnalysis) => {
+    const update = (state: AiState) => setAi((p) => (p && p.asin === asin ? { ...p, state } : p));
+    try {
+      const session = await createNanoSession((loaded) => update({ kind: 'downloading', progress: loaded }));
+      update({ kind: 'running' });
+      try {
+        const result = await enrichWithNano(analysis, session);
+        setAi({ asin, result, state: { kind: 'done' } });
+      } finally {
+        session.destroy();
+      }
+    } catch {
+      update({ kind: 'off', reason: 'error' });
+    }
+  };
+
+  /** Shows the template summary at once, then upgrades it with on-device AI if available. */
+  const startAi = async (asin: string, analysis: ThemeAnalysis) => {
+    setAi({ asin, result: withoutNano(analysis), state: { kind: 'checking' } });
+    const availability = await nanoAvailability();
+    if (availability === 'available') await runNano(asin, analysis);
+    else if (availability === 'downloadable' || availability === 'downloading') {
+      setAi((p) => (p && p.asin === asin ? { ...p, state: { kind: 'offer-download' } } : p));
+    } else setAi((p) => (p && p.asin === asin ? { ...p, state: { kind: 'off', reason: availability } } : p));
+  };
 
   const refresh = useCallback(async () => {
     const info = await activeTabInfo();
@@ -128,12 +159,28 @@ function App() {
             onOpen={open}
             allCollected={summary.totalOnAmazon !== null && summary.captured >= summary.totalOnAmazon}
           />
+          {ai && ai.asin === tab.asin && themes?.state.kind === 'done' && (
+            <SummaryCard
+              result={ai.result}
+              ai={ai.state}
+              onDownload={() => {
+                const s = themes.state;
+                if (s.kind === 'done') void runNano(ai.asin, s.analysis);
+              }}
+            />
+          )}
           <ThemesCard
             state={themes && themes.asin === tab.asin ? themes.state : { kind: 'idle' }}
+            aiThemes={ai && ai.asin === tab.asin ? ai.result.themes : null}
             canRun={summary.minimumMet && !(themes?.asin === tab.asin && themes.state.kind === 'running')}
             onRun={() => {
               const asin = tab.asin;
-              if (asin) runThemes(asin, (state) => setThemes({ asin, state }));
+              if (!asin) return;
+              setAi(null);
+              runThemes(asin, (state) => {
+                setThemes({ asin, state });
+                if (state.kind === 'done') void startAi(asin, state.analysis);
+              });
             }}
           />
         </>

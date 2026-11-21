@@ -42,7 +42,14 @@ export interface Theme {
   label: string;
   labelSource: 'ctfidf' | 'nano';
   topTerms: string[];
+  /** Number of sentences in the cluster. */
   size: number;
+  /** The sentences closest to the cluster centre (most typical), up to 8. */
+  samples: string[];
+  /** Mean star rating of reviews mentioning the theme. */
+  meanRating: number | null;
+  /** Set by on-device AI labelling. */
+  sentiment?: 'positive' | 'negative' | 'mixed' | 'neutral';
 }
 
 export interface SeriesBucket {

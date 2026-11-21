@@ -229,7 +229,7 @@ than polarity.
   about". Phase 5 (Gemini Nano labels) can name a cluster's dominant sentiment
   from its exemplars. A per-theme star mix could also be shown in Phase 6.
 
-**Manual check of exemplars (user, 2026-11-21).**
+**Manual check of exemplars (user, 2026-11-21).** See below.
 - *received, ordered, qty*: all 6 exemplars before and after the change point are
   about missing pieces ("received 9 pics instead of 10", "received 4 instead of
   committed 10 units", "an open package with only 9 hooks", "only 9 pieces were
@@ -240,3 +240,33 @@ than polarity.
   product" with "It's worthless…", "do not buy". This is really an "overall verdict"
   cluster with mixed polarity, confirming observation C. A change in its share is
   uninterpretable without sentiment, which is a concrete reason for Phase 5.
+
+## 2026-11-21 · Phase 5: on-device AI (Gemini Nano)
+
+### 21. How far to trust the AI
+- **Risk.** A language model writing a summary of statistics can invent numbers,
+  call a non-significant theme "rising", or label reviews as fake. Nano may also be
+  missing, still downloading, or slow on a given PC.
+- **Decisions.**
+  1. **Labels.** Nano sees each theme's keywords, its average star rating and the
+     8 sentences closest to the cluster centre. It must answer in a fixed JSON
+     schema (`responseConstraint`). Each label is checked: known theme id, used
+     once, 3–40 characters, sentiment one of positive / negative / mixed / neutral.
+     Any failure keeps that theme's keyword label.
+  2. **Summary.** Nano sees only a small JSON of facts built from the test results
+     (review count, period, per theme: mention %, before/after %, start month,
+     changed yes/no), never raw reviews. The summary is accepted only if it has
+     ≤ 3 sentences, **every number in it appears in that JSON**, it does not say
+     "fake", and it claims no rise or fall when nothing changed. Otherwise a fixed
+     template with the same facts is shown.
+  3. **Availability.** The template summary appears at once. If Nano is
+     *available* it runs automatically. If *downloadable*, a "Use on-device AI"
+     button starts the download (Chrome requires a click) with a progress bar. If
+     *unavailable* or *unsupported*, the panel says so and keyword labels stay.
+- **Why sentiment.** Entry 20 showed a "money, waste, useful" cluster mixing
+  "worthless" and "very useful". Nano's sentiment field ("mixed") makes that
+  visible instead of hiding it behind keywords.
+- **Evidence (tests, fake Nano session).** Valid answers are applied. An invented
+  "25%" rejects the summary in favour of the template. A crashed model leaves keyword labels
+  and the template. The template always passes its own validation.
+- **Not yet verified on real Nano in Chrome.**

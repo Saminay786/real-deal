@@ -288,7 +288,9 @@ Results must be identical across runs for the same input.
   conditional star stratification, debug list in the side panel. Verified in
   Chrome 2026-11-21 on the hooks (106 reviews → 6 sensible themes, none
   significant; DECISIONS #20).
-- [ ] Phase 5 — Gemini Nano labels + narrative
+- [x] Phase 5 — Gemini Nano labels + narrative: schema-constrained labels with
+  sentiment, summary from facts JSON with number validation, template
+  fallback, download flow; 155 tests pass. Not yet verified on real Nano.
 - [ ] Phase 6 — trends UI
 - [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)
 ### v2

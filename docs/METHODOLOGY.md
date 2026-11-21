@@ -118,6 +118,22 @@ stratified test attributes to the star mix. In a synthetic test it detected
 nothing, while the unstratified test caught the shift. With unfiltered collection
 the star mix is natural, so the plain test is used and such rises are visible.
 
+## On-device AI labels and summary (optional)
+
+When Chrome's built-in Gemini Nano is available, it names each theme and writes
+a short summary. Nothing statistical depends on it, and every output is checked:
+
+- **Theme names.** Input: keywords, average star rating, and the 8 sentences
+  closest to the theme's centre (largest $x \cdot c_j$). Output: JSON
+  `{id, label, sentiment}` forced by a schema. Invalid items keep the keyword label.
+- **Summary.** Input: only a facts JSON derived from the test results, not
+  reviews. The output is accepted only if every number in it occurs in the facts,
+  it has at most 3 sentences, and it claims no change when no theme was
+  significant. Otherwise a deterministic template is used:
+  - *changed:* "Mentions of "X" rose from 5% to 17% of reviews from Oct 2026."
+  - *no change:* "No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews).
+    Most discussed: …"
+
 ## Monthly buckets
 
 Reviews are sorted by date and grouped by calendar month. Thin months are

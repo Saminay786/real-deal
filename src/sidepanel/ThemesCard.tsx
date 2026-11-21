@@ -1,5 +1,6 @@
 // Phase 4 debug list of theme shifts. Phase 6 replaces this with the trends UI.
 import type { ThemeAnalysis } from '../themes/analyze';
+import type { Theme } from '../types';
 
 export type ThemesState =
   | { kind: 'idle' }
@@ -19,7 +20,15 @@ const STAGE: Record<string, string> = {
   clustering: 'Finding themes and testing for changes…',
 };
 
-export function ThemesCard({ state, canRun, onRun }: { state: ThemesState; canRun: boolean; onRun: () => void }) {
+interface Props {
+  state: ThemesState;
+  /** Themes with on-device AI labels, if available. */
+  aiThemes: readonly Theme[] | null;
+  canRun: boolean;
+  onRun: () => void;
+}
+
+export function ThemesCard({ state, aiThemes, canRun, onRun }: Props) {
   return (
     <section class="card">
       <h2>Themes over time (debug)</h2>
@@ -38,12 +47,24 @@ export function ThemesCard({ state, canRun, onRun }: { state: ThemesState; canRu
         </p>
       )}
       {state.kind === 'error' && <p class="small warn">Analysis failed: {state.message}</p>}
-      {state.kind === 'done' && <Results a={state.analysis} />}
+      {state.kind === 'done' && <Results a={state.analysis} themes={aiThemes ?? state.analysis.themes} />}
     </section>
   );
 }
 
-function Results({ a }: { a: ThemeAnalysis }) {
+function ThemeName({ t, fallback }: { t: Theme | undefined; fallback: string }) {
+  if (!t) return <strong>{fallback}</strong>;
+  return (
+    <>
+      <strong>{t.label}</strong>
+      {t.sentiment && <span class={`small senti ${t.sentiment}`}> {t.sentiment}</span>}
+      {t.labelSource === 'nano' && <span class="small muted"> ({t.topTerms.join(', ')})</span>}
+    </>
+  );
+}
+
+function Results({ a, themes }: { a: ThemeAnalysis; themes: readonly Theme[] }) {
+  const byId = new Map(themes.map((t) => [t.id, t]));
   return (
     <>
       <p class="small muted">
@@ -61,7 +82,8 @@ function Results({ a }: { a: ThemeAnalysis }) {
         {a.shifts.map((s) => (
           <li key={s.themeId}>
             <div>
-              <strong>{s.label}</strong> {s.significant ? <span class="ok">· changed</span> : <span class="muted">· no clear change</span>}
+              <ThemeName t={byId.get(s.themeId)} fallback={s.label} />{' '}
+              {s.significant ? <span class="ok">· changed</span> : <span class="muted">· no clear change</span>}
             </div>
             <div class="small">
               {pct(s.before.share)} → {pct(s.after.share)} of reviews, from {month(s.changeAt)} · Δ {s.diff >= 0 ? '+' : ''}
@@ -85,7 +107,7 @@ function Results({ a }: { a: ThemeAnalysis }) {
           </li>
         ))}
       </ol>
-      {a.themes
+      {themes
         .filter((t) => !a.shifts.some((s) => s.themeId === t.id))
         .map((t) => (
           <p key={t.id} class="small muted">
