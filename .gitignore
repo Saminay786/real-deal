@@ -5,3 +5,6 @@ dist/
 .DS_Store
 models/*
 !models/.gitkeep
+research/data/
+research/.venv/
+.ipynb_checkpoints/
