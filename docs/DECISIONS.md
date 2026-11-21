@@ -56,6 +56,7 @@ cause for each of them.)
 | 41 | Repeated legends, messy list | Each clarification was added inside every theme block and reviewed for one theme, never for the whole list. |
 | 42 | Examples off-topic; % hid 3-vs-6 counts | Exemplars were picked by date proximity to the change, not typicality. The broad cluster was named from its centre only. Counts were not shown. |
 | 49 | (Prevented) bursts created by our own sampling | Star-filtered views hold only the most recent 100 of one star level, and pooled they form a dense recent all-positive cluster. Unit tests use single coherent streams. |
+| 51 | Committed with a test timing out | Large fixtures parse slowly under parallel load, and only the new tests were run before committing. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -1037,3 +1038,14 @@ The Python implementation reproduces the extension's hand-computed test values (
 - **Evidence.** Hand-computed scores (4.6★×9 → 3.79, 4.3★×2000 → 4.25, 4.6★×9000 → 4.58). Both fixtures are
   read correctly (60 and 22 cards, sponsored and unrated cards included). One badge per card, idempotent.
   Sorting is non-increasing with unscored cards last, and restore returns the exact original order.
+
+### 51. Phase 8 was committed with a test that failed in the full suite
+- **What happened.** The Phase 8 tests passed when run on their own (9/9) but one failed in the full suite
+  with "Test timed out in 5000ms" (5.2 s). The commit was made before reading the full-suite result
+  carefully.
+- **Why it happened.** Parsing a 2.2 MB saved search page takes about 1 s alone, but over 5 s when 28 test files
+  run in parallel. The earlier fixture tests were smaller (0.2–2 MB) and stayed just under the limit.
+- **Why it wasn't caught earlier.** Only the new files were run before committing. The full-suite run
+  happened in the same step as the commit, and its failure line was overlooked.
+- **Decision.** `testTimeout: 20_000` in `vitest.config.ts`. 216/216 pass in the full suite. Process rule:
+  **run the full suite and read its result before every commit**, not just the new tests.
