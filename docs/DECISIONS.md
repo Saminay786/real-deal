@@ -369,3 +369,18 @@ than polarity.
   and passes **the same validation** (numbers, ≤ 3 sentences, no false change
   claims). The panel notes "plain-text fallback" when used, and the rejection
   reason names both errors if both fail.
+
+### 27. Nano writes a summary, but too long
+- **Observation.** On the next run the JSON-constrained summary call *succeeded*,
+  so kErrorUnknown (#25, #26) is intermittent; the plain-text fallback stays as a
+  safety net. The draft was rejected for "4 sentences (max 3)". Labels again
+  worked for all 8 themes, worded slightly differently from the last run ("Good
+  fabric quality", "Incorrect Pack Sent", "Product Liked"): Nano's labels vary
+  between runs.
+- **Decision.** Before validation, keep only the **first 3 sentences** of an
+  over-long answer. Trimming can only remove claims, never add an unverified
+  number, so the number and change-claim checks then run on what is shown. The
+  panel notes "trimmed to 3 sentences". A trimmed answer that still breaks a rule
+  is rejected as before (tested).
+- **Open.** Label wording varies run to run. If that bothers users, cache labels
+  per (product, theme keywords) so re-runs keep the same names.

@@ -6,6 +6,7 @@ import {
   buildNarrativeInput,
   enrichWithNano,
   nanoAvailability,
+  firstSentences,
   parseLabels,
   parsePlainSummary,
   templateSummary,
@@ -166,6 +167,13 @@ describe('validateSummary', () => {
   });
 });
 
+describe('firstSentences', () => {
+  it('keeps up to n sentences', () => {
+    expect(firstSentences('One. Two! Three? Four.', 3)).toEqual({ text: 'One. Two! Three?', trimmed: true });
+    expect(firstSentences('One. Two.', 3)).toEqual({ text: 'One. Two.', trimmed: false });
+  });
+});
+
 describe('parsePlainSummary', () => {
   it('strips quotes, code fences and a "Summary:" prefix', () => {
     expect(parsePlainSummary('Summary: "No clear change."')).toBe('No clear change.');
@@ -266,6 +274,26 @@ describe('enrichWithNano', () => {
     expect(r.summarySource).toBe('template');
     expect(r.summary).toBe(withoutNano(analysis(true)).summary);
     expect(r.rejected).toEqual({ draft: 'Missing pieces rose to 25% of reviews.', reason: 'number 25 is not in the test results' });
+  });
+
+  it('trims a 4-sentence answer to its first 3 sentences, then validates them', async () => {
+    const four =
+      'No theme changed clearly from Jul 2026 to Nov 2026. Paint damage was mentioned in 33% of reviews. ' +
+      'Missing pieces came up in 10%. Overall the product is great value!';
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: four })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summarySource).toBe('nano');
+    expect(r.note).toBe('trimmed to 3 sentences');
+    expect(r.summary).toBe(
+      'No theme changed clearly from Jul 2026 to Nov 2026. Paint damage was mentioned in 33% of reviews. Missing pieces came up in 10%.',
+    );
+  });
+
+  it('rejects a trimmed answer whose first sentences still break the rules', async () => {
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: 'Complaints rose to 50%. A. B. C.' })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summarySource).toBe('template');
+    expect(r.rejected?.reason).toBe('number 50 is not in the test results');
   });
 
   it('explains a rejected "fell" when nothing changed', async () => {

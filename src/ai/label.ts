@@ -268,6 +268,12 @@ export function parseSummary(raw: string): string | null {
   }
 }
 
+/** The first `n` sentences of `text`, and whether anything was cut. */
+export function firstSentences(text: string, n: number): { text: string; trimmed: boolean } {
+  const parts = text.trim().split(/(?<=[.!?])\s+/).filter((x) => x.trim().length > 0);
+  return parts.length <= n ? { text: text.trim(), trimmed: false } : { text: parts.slice(0, n).join(' '), trimmed: true };
+}
+
 /** Plain-text answer: strip surrounding quotes/markdown and a leading "Summary:". */
 export function parsePlainSummary(raw: string): string | null {
   const t = raw
@@ -381,10 +387,14 @@ export async function enrichWithNano(
       };
     }
   }
-  const summary = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  const parsed = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  // Over-long answers are trimmed to their first 3 sentences before validation:
+  // cutting can only remove claims, never add an unverified number.
+  const { text: summary, trimmed } = parsed === null ? { text: null, trimmed: false } : firstSentences(parsed, 3);
   const problem = summary === null ? `not valid ${format === 'json' ? 'JSON' : 'text'}` : summaryProblem(summary, input);
   if (summary !== null && problem === null) {
-    return { themes, summary, summarySource: 'nano', labelsApplied, ...(jsonError ? { note: 'plain-text fallback' } : {}) };
+    const notes = [jsonError ? 'plain-text fallback' : null, trimmed ? 'trimmed to 3 sentences' : null].filter(Boolean);
+    return { themes, summary, summarySource: 'nano', labelsApplied, ...(notes.length ? { note: notes.join(', ') } : {}) };
   }
   const rejected: AiResult['rejected'] = {
     draft: summary ?? raw.slice(0, 450),
