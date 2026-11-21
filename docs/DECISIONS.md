@@ -228,3 +228,15 @@ than polarity.
 - **Decision.** Accept for themes, since the question is "what are people talking
   about". Phase 5 (Gemini Nano labels) can name a cluster's dominant sentiment
   from its exemplars. A per-theme star mix could also be shown in Phase 6.
+
+**Manual check of exemplars (user, 2026-11-21).**
+- *received, ordered, qty*: all 6 exemplars before and after the change point are
+  about missing pieces ("received 9 pics instead of 10", "received 4 instead of
+  committed 10 units", "an open package with only 9 hooks", "only 9 pieces were
+  sent…"). The theme is coherent, and it groups different wordings (pics / units /
+  hooks / pieces). The method finds a real topic, but there is not enough data yet
+  to call it rising.
+- *money, waste, useful*: exemplars mix "Very useful product", "I just loved this
+  product" with "It's worthless…", "do not buy". This is really an "overall verdict"
+  cluster with mixed polarity, confirming observation C. A change in its share is
+  uninterpretable without sentiment, which is a concrete reason for Phase 5.
