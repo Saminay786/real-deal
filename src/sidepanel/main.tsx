@@ -67,14 +67,17 @@ function App() {
   const runNano = async (asin: string, analysis: ThemeAnalysis) => {
     const update = (state: AiState) => setAi((p) => (p && p.asin === asin ? { ...p, state } : p));
     try {
-      const session = await createNanoSession((loaded) => update({ kind: 'downloading', progress: loaded }));
+      // The first session triggers (and reports) the model download if needed.
+      const first = await createNanoSession((loaded) => update({ kind: 'downloading', progress: loaded }));
       update({ kind: 'running' });
-      try {
-        const result = await enrichWithNano(analysis, session);
-        setAi({ asin, result, state: { kind: 'done' } });
-      } finally {
-        session.destroy();
-      }
+      let spare: typeof first | null = first;
+      const makeSession = () => {
+        const s = spare;
+        spare = null;
+        return s ? Promise.resolve(s) : createNanoSession();
+      };
+      const result = await enrichWithNano(analysis, makeSession);
+      setAi({ asin, result, state: { kind: 'done' } });
     } catch {
       update({ kind: 'off', reason: 'error' });
     }

@@ -336,3 +336,21 @@ than polarity.
   silhouette gap, or merging near-duplicate clusters.
 - **Also seen.** Three themes at p ≈ 0.09–0.11 (q = 0.247), none significant, and
   again intervals excluding 0 (entry 20, Phase 6 fix pending).
+
+### 25. The Nano summary crashed when sharing a session with the labels
+- **Observation.** With the reason now shown (#23), the rejected summary turned out
+  to be a crash, not a validation failure: "AI error: An unknown error occurred:
+  kErrorUnknown". Labels (the first prompt) succeeded: "Fabric/Quality",
+  "Material comfort", "Colour fading after wash", …
+- **Likely cause.** One session was used for both prompts. A session keeps the
+  whole conversation, so the summary prompt carried ~7 themes × 8 sample sentences
+  plus the label answer, which plausibly exceeded Nano's small context window.
+- **Decision.** Each prompt runs in a **fresh session**, destroyed afterwards,
+  with **one retry** in another new session on error. The first session is the one
+  that triggers and reports the model download.
+- **Evidence (tests, fake Nano).** Two prompts use two sessions. A
+  `kErrorUnknown` on the summary is retried and succeeds. Total failure falls back
+  after 4 attempts (2 prompts × 2). Still to confirm on real Nano.
+- **Also seen.** "video, images, com" (now named "Product video") was still
+  present with the same 220 sentences. Either the #24 build had not been loaded,
+  or those sentences are not URL fragments. Next step: read that theme's examples.

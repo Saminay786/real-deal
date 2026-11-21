@@ -188,21 +188,29 @@ describe('templateSummary', () => {
 });
 
 describe('enrichWithNano', () => {
-  function fakeSession(answers: (string | Error)[]): NanoSession & { prompts: string[] } {
+  /** Session factory over a shared queue of answers; records prompts and how many sessions were made. */
+  function fakeNano(answers: (string | Error)[]) {
     const prompts: string[] = [];
-    return {
-      prompts,
-      prompt(input) {
-        prompts.push(input);
-        const a = answers.shift();
-        return a instanceof Error || a === undefined ? Promise.reject(a ?? new Error('no answer')) : Promise.resolve(a);
-      },
-      destroy() {},
+    let sessions = 0;
+    let destroyed = 0;
+    const make = (): Promise<NanoSession> => {
+      sessions++;
+      return Promise.resolve({
+        prompt(input: string) {
+          prompts.push(input);
+          const a = answers.shift();
+          return a instanceof Error || a === undefined ? Promise.reject(a ?? new Error('no answer')) : Promise.resolve(a);
+        },
+        destroy() {
+          destroyed++;
+        },
+      });
     };
+    return { make, prompts, sessions: () => sessions, destroyed: () => destroyed };
   }
 
-  it('uses AI labels and an AI summary when both validate', async () => {
-    const s = fakeSession([
+  it('uses AI labels and an AI summary when both validate, each in a fresh session', async () => {
+    const n = fakeNano([
       JSON.stringify({
         themes: [
           { id: 0, label: 'Missing pieces in the box', sentiment: 'negative' },
@@ -211,33 +219,50 @@ describe('enrichWithNano', () => {
       }),
       JSON.stringify({ summary: 'Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.' }),
     ]);
-    const r = await enrichWithNano(analysis(true), s);
+    const r = await enrichWithNano(analysis(true), n.make);
     expect(r.labelsApplied).toBe(2);
     expect(r.themes[0]?.label).toBe('Missing pieces in the box');
     expect(r.summarySource).toBe('nano');
+    expect(n.sessions()).toBe(2); // one per prompt: no shared context
+    expect(n.destroyed()).toBe(2);
     // The summary prompt sees the AI labels and only the facts JSON, never raw reviews.
-    expect(s.prompts[1]).toContain('"label":"Missing pieces in the box"');
-    expect(s.prompts[1]).not.toContain('I received 9 pics');
+    expect(n.prompts[1]).toContain('"label":"Missing pieces in the box"');
+    expect(n.prompts[1]).not.toContain('I received 9 pics');
+  });
+
+  it('retries a failed prompt once in a new session', async () => {
+    const n = fakeNano([
+      '{"themes":[]}',
+      new Error('An unknown error occurred: kErrorUnknown'),
+      JSON.stringify({ summary: 'Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.' }),
+    ]);
+    const r = await enrichWithNano(analysis(true), n.make);
+    expect(r.summarySource).toBe('nano');
+    expect(n.sessions()).toBe(3);
   });
 
   it('falls back to the template when the AI invents a number', async () => {
-    const s = fakeSession(['{"themes":[]}', JSON.stringify({ summary: 'Missing pieces rose to 25% of reviews.' })]);
-    const r = await enrichWithNano(analysis(true), s);
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: 'Missing pieces rose to 25% of reviews.' })]);
+    const r = await enrichWithNano(analysis(true), n.make);
     expect(r.summarySource).toBe('template');
     expect(r.summary).toBe(withoutNano(analysis(true)).summary);
     expect(r.rejected).toEqual({ draft: 'Missing pieces rose to 25% of reviews.', reason: 'number 25 is not in the test results' });
   });
 
   it('explains a rejected "fell" when nothing changed', async () => {
-    const s = fakeSession(['{"themes":[]}', JSON.stringify({ summary: 'Value for Money fell from 33% to 33%.' })]);
-    const r = await enrichWithNano(analysis(false), s);
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: 'Value for Money fell from 33% to 33%.' })]);
+    const r = await enrichWithNano(analysis(false), n.make);
     expect(r.rejected?.reason).toBe('says "fell" although no theme changed significantly');
   });
 
   it('keeps keyword labels and the template when the AI fails entirely', async () => {
-    const r = await enrichWithNano(analysis(false), fakeSession([new Error('model crashed'), new Error('again')]));
+    const fail = () => new Error('model crashed');
+    const n = fakeNano([fail(), fail(), fail(), fail()]);
+    const r = await enrichWithNano(analysis(false), n.make);
     expect(r.labelsApplied).toBe(0);
     expect(r.themes).toEqual(THEMES);
     expect(r.summarySource).toBe('template');
+    expect(r.rejected?.reason).toBe('AI error: model crashed');
+    expect(n.sessions()).toBe(4); // 2 prompts × (1 try + 1 retry)
   });
 });

@@ -300,12 +300,41 @@ export interface AiResult {
   rejected?: { draft: string; reason: string };
 }
 
-/** Labels themes and writes the summary with `session`; any failure falls back per item. */
-export async function enrichWithNano(a: ThemeAnalysis, session: NanoSession, signal?: AbortSignal): Promise<AiResult> {
+/**
+ * Runs one prompt in a fresh session (sessions keep the whole conversation, and
+ * reusing one for labels + summary overflowed Nano's context: kErrorUnknown,
+ * DECISIONS #25). Retries once on error.
+ */
+async function promptFresh(
+  makeSession: () => Promise<NanoSession>,
+  text: string,
+  schema: object,
+  signal?: AbortSignal,
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const session = await makeSession();
+    try {
+      return await session.prompt(text, { responseConstraint: schema, signal });
+    } catch (e) {
+      lastError = e;
+    } finally {
+      session.destroy();
+    }
+  }
+  throw lastError;
+}
+
+/** Labels themes and writes the summary, each in its own session; any failure falls back per item. */
+export async function enrichWithNano(
+  a: ThemeAnalysis,
+  makeSession: () => Promise<NanoSession>,
+  signal?: AbortSignal,
+): Promise<AiResult> {
   let themes = a.themes;
   let labelsApplied = 0;
   try {
-    const raw = await session.prompt(buildLabelPrompt(a.themes), { responseConstraint: LABEL_SCHEMA, signal });
+    const raw = await promptFresh(makeSession, buildLabelPrompt(a.themes), LABEL_SCHEMA, signal);
     const labels = parseLabels(raw, a.themes);
     themes = applyLabels(a.themes, labels);
     labelsApplied = labels.length;
@@ -315,7 +344,7 @@ export async function enrichWithNano(a: ThemeAnalysis, session: NanoSession, sig
   const input = buildNarrativeInput(a, themes);
   let rejected: AiResult['rejected'];
   try {
-    const raw = await session.prompt(buildNarrativePrompt(input), { responseConstraint: SUMMARY_SCHEMA, signal });
+    const raw = await promptFresh(makeSession, buildNarrativePrompt(input), SUMMARY_SCHEMA, signal);
     const summary = parseSummary(raw);
     const problem = summary === null ? 'not valid JSON' : summaryProblem(summary, input);
     if (summary !== null && problem === null) return { themes, summary, summarySource: 'nano', labelsApplied };
