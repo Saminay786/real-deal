@@ -940,3 +940,18 @@ than polarity.
      content script 0 network call sites.
 - **Still to verify in Chrome:** that the AI worker still loads the model and WASM
   under the stricter CSP (all same-origin, so expected to work).
+
+### 47. Broken images on GitHub; the research dataset is "750 GB"
+- **Broken README images.** *What happened:* after the push, the README showed
+  broken images. *Why:* the screenshot table pointed at `docs/screenshots/*.png`,
+  which don't exist yet. *Why not caught:* the README was only read as text, never
+  viewed rendered. *Decision:* comment the table out until real screenshots are
+  added.
+- **Dataset size.** *What happened:* the Hugging Face page for McAuley-Lab/Amazon-
+  Reviews-2023 says 750 GB, and its loader needs `trust_remote_code`, which newer
+  `datasets` versions no longer support (the page's viewer is disabled for the same
+  reason). *Decision:* the research notebook downloads **one category's review file**
+  directly from the dataset's own server and streams it line by line, keeping only
+  products with ≥ 300 reviews over ≥ 12 months. Sizes checked: All_Beauty 94 MB,
+  Health_and_Personal_Care 70 MB, Appliances 270 MB, Baby_Products 838 MB,
+  Electronics 6.5 GB. Develop on All_Beauty, report on Appliances.

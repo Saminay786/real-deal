@@ -13,10 +13,13 @@ statistics computed entirely in your browser:
    each topic's share of reviews really changed, or whether the difference
    could just be luck.
 
-<!-- Screenshots: replace the placeholders below with real captures. -->
+<!--
+Screenshots: add docs/screenshots/badge.png and docs/screenshots/themes.png, then
+restore this table (kept commented out so GitHub shows no broken images):
 | Rating badge | Side panel: themes over time |
 |---|---|
 | ![Rating badge](docs/screenshots/badge.png) | ![Themes over time](docs/screenshots/themes.png) |
+-->
 
 ## Privacy
 
