@@ -9,6 +9,7 @@ import {
   firstSentences,
   parseLabels,
   parsePlainSummary,
+  summaryProblem,
   templateSummary,
   validateSummary,
   withoutNano,
@@ -161,7 +162,7 @@ describe('validateSummary', () => {
   const none = buildNarrativeInput(analysis(false));
 
   it('accepts a faithful summary', () => {
-    expect(validateSummary('Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026. Paint damage stayed at about 33%.', changed)).toBe(true);
+    expect(validateSummary('Mentions of received, ordered, qty rose from 5% to 17% of reviews from Oct 2026. Paint, wall, walls appeared in 33% of reviews.', changed)).toBe(true);
   });
 
   it('rejects invented or altered numbers', () => {
@@ -178,7 +179,17 @@ describe('validateSummary', () => {
     // Seen on real Nano: "Over 100 reviews were collected…" with exactly 100 reviews.
     expect(validateSummary('Over 106 reviews mentioned the product.', changed)).toBe(false);
     expect(validateSummary('Nearly 33% mention paint damage.', changed)).toBe(false);
-    expect(validateSummary('Paint damage was mentioned in 33% of 106 reviews.', changed)).toBe(true);
+    expect(validateSummary('Paint, wall, walls was mentioned in 33% of 106 reviews.', changed)).toBe(true);
+  });
+
+  it('rejects percentages that are not "% of reviews" or not next to their theme (real Nano, DECISIONS #31)', () => {
+    // Real Nano: "Battery performance was viewed negatively 13% of the time."
+    expect(summaryProblem('Paint, wall, walls was viewed negatively 33% of the time.', changed)).toBe(
+      '33% is not written as "33% of reviews"',
+    );
+    // Right wording, wrong theme: 10% belongs to received/ordered/qty, not paint.
+    expect(summaryProblem('Paint, wall, walls appeared in 10% of reviews.', changed)).toBe('10% is not next to the theme it belongs to');
+    expect(summaryProblem('Paint, wall, walls appeared in 33% of reviews.', changed)).toBeNull();
   });
 
   it('rejects a claimed rise or fall when no theme changed', () => {
@@ -254,7 +265,7 @@ describe('enrichWithNano', () => {
           { keywords: 'paint, wall, walls', label: 'Peels paint off walls', sentiment: 'negative' },
         ],
       }),
-      JSON.stringify({ summary: 'Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.' }),
+      JSON.stringify({ summary: 'Mentions of Missing pieces in the box rose from 5% to 17% of reviews from Oct 2026.' }),
     ]);
     const r = await enrichWithNano(analysis(true), n.make);
     expect(r.labelsApplied).toBe(2);
@@ -271,11 +282,11 @@ describe('enrichWithNano', () => {
     const n = fakeNano([
       '{"themes":[]}',
       new Error('An unknown error occurred: kErrorUnknown'),
-      'Summary: "Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026."',
+      'Summary: "Mentions of received, ordered, qty rose from 5% to 17% of reviews from Oct 2026."',
     ]);
     const r = await enrichWithNano(analysis(true), n.make);
     expect(r.summarySource).toBe('nano');
-    expect(r.summary).toBe('Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.');
+    expect(r.summary).toBe('Mentions of received, ordered, qty rose from 5% to 17% of reviews from Oct 2026.');
     expect(r.note).toBe('plain-text fallback');
     expect(n.sessions()).toBe(3);
     expect(n.prompts[2]).toContain('Reply with only the summary sentences');
@@ -298,14 +309,14 @@ describe('enrichWithNano', () => {
 
   it('trims a 4-sentence answer to its first 3 sentences, then validates them', async () => {
     const four =
-      'No theme changed clearly from Jul 2026 to Nov 2026. Paint damage was mentioned in 33% of reviews. ' +
-      'Missing pieces came up in 10%. Overall the product is great value!';
+      'No theme changed clearly from Jul 2026 to Nov 2026. Paint, wall, walls was mentioned in 33% of reviews. ' +
+      'Received, ordered, qty came up in 10% of reviews. Overall the product is great value!';
     const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: four })]);
     const r = await enrichWithNano(analysis(false), n.make);
     expect(r.summarySource).toBe('nano');
     expect(r.note).toBe('trimmed to 3 sentences');
     expect(r.summary).toBe(
-      'No theme changed clearly from Jul 2026 to Nov 2026. Paint damage was mentioned in 33% of reviews. Missing pieces came up in 10%.',
+      'No theme changed clearly from Jul 2026 to Nov 2026. Paint, wall, walls was mentioned in 33% of reviews. Received, ordered, qty came up in 10% of reviews.',
     );
   });
 
@@ -328,7 +339,18 @@ describe('enrichWithNano', () => {
       'No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews). ' +
         'There were 106 reviews for this product from Jul 2026 to Nov 2026. Paint damage was frequently mentioned.',
     );
-    expect(r.note).toBe('first sentence added from the test results');
+    expect(r.note).toBe('first sentence added from the test results, trimmed to 3 sentences');
+  });
+
+  it('checks for "no clear change" after trimming, not before (real Nano, DECISIONS #31)', async () => {
+    // Nano put the finding in its 4th sentence; trimming removed it after the check had passed.
+    const ai =
+      'There were 106 reviews from Jul 2026 to Nov 2026. Paint, wall, walls appeared in 33% of reviews. ' +
+      'Received, ordered, qty appeared in 10% of reviews. No theme changed clearly.';
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: ai })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summary.startsWith('No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews).')).toBe(true);
+    expect(r.note).toContain('first sentence added from the test results');
   });
 
   it('leaves an AI summary alone when it already states there was no clear change', async () => {

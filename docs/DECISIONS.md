@@ -44,6 +44,7 @@ cause for each of them.)
 | 27 | 4-sentence summary | Nano does not reliably obey length instructions. |
 | 28 | AI labels on the wrong themes; "Over 100" | Themes were numbered from 0 and Nano answered from 1, while the checks only tested that ids were *valid*, not *right*. Number checks looked at digits, not qualifiers. |
 | 30 | Star-adjusted Δ −32% [−38%, −26%] for a 7-point change | Star-filtered views cover different time spans, leaving strata with 1–3 reviews on one side. Standardisation gave them full weight, and Wald variance is 0 at p̂ = 0 or 1. Unit tests only used balanced strata. |
+| 31 | Finding still missing; "13% of the time" | The no-change check ran before trimming, which then removed Nano's 4th-sentence finding. Number checks tested existence, not meaning or subject. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -543,3 +544,37 @@ than polarity.
   older units, so a rise in such themes can reflect the product *ageing* in
   buyers' hands, not a change in what is being sold. Note this in the UI
   limitations (Phase 6).
+
+### 31. Δ fix confirmed; summary checks were in the wrong order, and percentages could change meaning
+- **Δ fix (#30) confirmed on boAt.** "Battery performance 17% → 10%, Δ −8% [−16%,
+  +1%]", consistent now (was −32% [−38%, −26%]). One theme shows opposite
+  signs, "Sound quality 31% → 28%, Δ +8%". That is not a bug but a Simpson's-paradox
+  case: within each star level sound-quality mentions rose slightly, while the mix
+  shifted towards low-star reviews, which rarely praise sound. The Phase 6 UI must
+  show star-adjusted before/after shares so the numbers agree on screen.
+
+**A. "No clear change" still missing.**
+- *What happened.* The #29 fix did not fire: the note said only "trimmed to 3 sentences".
+- *Why.* The "does it say no change?" check ran on the AI's **full** answer,
+  *before* trimming to 3 sentences. Nano wrote the finding as its 4th sentence:
+  the check passed, then trimming deleted that sentence.
+- *Why not caught.* The #29 test used a 3-sentence answer, so trimming never
+  removed anything. No test combined "over-long" with "finding at the end".
+- *Decision.* Trim first, then check what will actually be shown. A test
+  reproduces the 4th-sentence case.
+
+**B. Percentages changed meaning.**
+- *What happened.* "Battery performance was viewed negatively 13% of the time",
+  "Sound quality was mentioned positively 28% of the time". 13% and 28% are shares
+  of reviews *mentioning* the theme, not shares of negative or positive opinions or "of the time".
+- *Why.* The validator only checked that each number *exists somewhere* in the
+  facts, not *what it refers to*. A real number with the wrong subject passes.
+- *Why not caught.* Test summaries were written by us, with correct meanings.
+  #30 had flagged the same issue as "open" without a fix.
+- *Decision.* Every percentage must be written as "N% of reviews" (or "N% to M%
+  of reviews", or "label (N%)"), **in the same sentence as the theme label it
+  belongs to**, and must equal one of that theme's numbers. The prompt says so
+  explicitly. Tests: "33% of the time" is rejected, and a correct percentage next to
+  the wrong theme is rejected.
+- *Trade-off.* Paraphrased labels ("battery life" for "Battery performance") are
+  now rejected and fall back to the template. Strict but safe.

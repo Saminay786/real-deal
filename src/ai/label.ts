@@ -230,7 +230,8 @@ export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'pl
     'Rules: use only facts and numbers that appear in the JSON; do not add causes, advice or other numbers;',
     'a theme with "changed": false has NO clear change, so never describe it as rising or falling;',
     'if no theme changed, say there was no clear change and name the most mentioned themes;',
-    'neutral wording; never say reviews are fake; write numbers exactly as given, without "over", "about" or "nearly".',
+    'neutral wording; never say reviews are fake; write numbers exactly as given, without "over", "about" or "nearly";',
+    'percentages are shares of reviews that mention a theme: write them as "N% of reviews" in the same sentence as that theme\'s label, never as "N% of the time" or as a share of positive or negative opinions.',
     format === 'json' ? 'Answer as JSON {"summary": "..."}.' : 'Reply with only the summary sentences, nothing else.',
     '',
     JSON.stringify(input),
@@ -267,6 +268,25 @@ export function summaryProblem(text: string, input: NarrativeInput): string | nu
   if (qualified) return `qualifies a number ("${qualified[0]}")`;
   const claim = t.match(/\b(rose|risen|increas\w*|grew|jump\w*|fell|drop\w*|declin\w*|decreas\w*)/i);
   if (!input.themes.some((x) => x.changed) && claim) return `says "${claim[0]}" although no theme changed significantly`;
+  // Every percentage must mean "share of reviews" and belong to a theme named in the
+  // same sentence: "viewed negatively 13% of the time" misread a mention share as a
+  // sentiment share (DECISIONS #31).
+  for (const sentence of sentences) {
+    for (const m of sentence.matchAll(/(\d+)\s*%/g)) {
+      const n = Number(m[1]);
+      const rest = sentence.slice((m.index ?? 0) + m[0].length);
+      // "N% of reviews", a range "N% to M% of reviews", or "label (N%)".
+      if (!/^\s*(?:of\s+(?:all\s+|the\s+)?(?:\d+\s+)?reviews\b|to\s+\d+\s*%\s+of\s+(?:the\s+)?reviews\b|\))/i.test(rest)) {
+        return `${n}% is not written as "${n}% of reviews"`;
+      }
+      const owner = input.themes.find(
+        (th) =>
+          sentence.toLowerCase().includes(th.label.toLowerCase()) &&
+          [th.mentionedPct, th.beforePct, th.afterPct].includes(n),
+      );
+      if (!owner) return `${n}% is not next to the theme it belongs to`;
+    }
+  }
   return null;
 }
 
@@ -409,17 +429,26 @@ export async function enrichWithNano(
       };
     }
   }
-  let parsed = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
-  // The main finding must be stated. If nothing changed and the AI did not say so,
-  // lead with the factual sentence and keep the AI's first two (DECISIONS #29).
+  const parsed = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  // 1) Over-long answers are trimmed to their first 3 sentences: cutting can only
+  //    remove claims, never add an unverified number.
+  // 2) Then, on what will actually be shown: if nothing changed and it does not say
+  //    so, lead with the factual sentence and keep the AI's first two (#29). The
+  //    check must come after trimming: Nano put "no change" in its 4th sentence,
+  //    which trimming then removed (DECISIONS #31).
+  let summary: string | null = null;
+  let trimmed = false;
   let ledWithFinding = false;
-  if (parsed !== null && !input.themes.some((x) => x.changed) && !SAYS_NO_CHANGE.test(parsed)) {
-    parsed = `${noChangeSentence(input)} ${firstSentences(parsed, 2).text}`;
-    ledWithFinding = true;
+  if (parsed !== null) {
+    const cut = firstSentences(parsed, 3);
+    summary = cut.text;
+    trimmed = cut.trimmed;
+    if (!input.themes.some((x) => x.changed) && !SAYS_NO_CHANGE.test(summary)) {
+      summary = `${noChangeSentence(input)} ${firstSentences(parsed, 2).text}`;
+      ledWithFinding = true;
+      trimmed = firstSentences(parsed, 2).trimmed;
+    }
   }
-  // Over-long answers are trimmed to their first 3 sentences before validation:
-  // cutting can only remove claims, never add an unverified number.
-  const { text: summary, trimmed } = parsed === null ? { text: null, trimmed: false } : firstSentences(parsed, 3);
   const problem = summary === null ? `not valid ${format === 'json' ? 'JSON' : 'text'}` : summaryProblem(summary, input);
   if (summary !== null && problem === null) {
     const notes = [
