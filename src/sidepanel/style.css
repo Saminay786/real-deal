@@ -383,6 +383,18 @@ button.link.underline {
   margin-bottom: 4px;
 }
 
+.opt {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 8px 0 12px;
+  cursor: pointer;
+}
+
+.opt input {
+  margin-top: 3px;
+}
+
 details > summary {
   cursor: pointer;
   font-weight: 600;

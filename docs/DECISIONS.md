@@ -911,3 +911,32 @@ than polarity.
   verdict chip. *Why:* only 5 px of top margin, designed without the chip above it.
 - **Decision.** 8 px more top margin, the label reads "split May '23" and is kept
   inside the chart's width.
+
+## 2026-11-22 · Phase 7: release
+
+### 46. Release choices, and how "zero network calls" is guaranteed
+- **README, MIT licence, icons, options page.** The icon (three white rising bars
+  on blue) is drawn by `scripts/make-icons.py` (Pillow) at 16/32/48/128 px. The
+  options page has two settings, "Show the rating range badge" and "Debug
+  logging", stored in `chrome.storage.local`. The content script reads them at
+  start-up, and the debug flag now works in production builds when switched on.
+- **Zero network: why a code review alone was not enough.** The bundle *contains*
+  internet URLs and network APIs: transformers.js defaults (huggingface.co,
+  cdn.jsdelivr.net), help links in library error messages, and Vite's module
+  preloader. "We never call them" is a claim about runtime paths, and a future
+  dependency update could change those paths silently.
+- **Decision: two layers.**
+  1. **Browser-enforced:** `connect-src 'self'` added to the extension-pages CSP.
+     Chrome blocks any fetch/XHR/WebSocket from the side panel, options page,
+     service worker or the embedding worker to another origin, whatever the code
+     tries.
+  2. **Audit script** (`npm run audit:network`): lists every host in dist/ with
+     the documented reason it causes no request, and fails on any unknown host. It
+     checks that the CSP, the amazon.in-only host permission and the worker's
+     overrides (`allowRemoteModels = false`, local model path, browser cache off,
+     local WASM path) are present. It also checks that the **content script**,
+     which runs inside amazon.in pages where the extension CSP does not apply,
+     contains no network API at all. Result: passed, 9 hosts all explained,
+     content script 0 network call sites.
+- **Still to verify in Chrome:** that the AI worker still loads the model and WASM
+  under the stricter CSP (all same-origin, so expected to work).

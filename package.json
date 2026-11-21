@@ -12,7 +12,8 @@
     "build": "tsc --noEmit && vite build",
     "build:fixtures": "tsc --noEmit && vite build --mode fixtures",
     "test": "vitest run",
-    "fetch-model": "node scripts/fetch-model.mjs"
+    "fetch-model": "node scripts/fetch-model.mjs",
+    "audit:network": "node scripts/audit-network.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.2",

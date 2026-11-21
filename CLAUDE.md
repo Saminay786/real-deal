@@ -252,6 +252,7 @@ Results must be identical across runs for the same input.
 - `npm run dev` — dev build with HMR
 - `npm run build` — type-check + production build to `dist/`
 - `npm test` — Vitest
+- `npm run audit:network` — after a build: proves no outbound requests are possible
 - `npm run fetch-model` — once per checkout: downloads MiniLM into `models/`
   (git-ignored; pinned commit + SHA-256). `npm run build` fails without it.
 - `npm run build:fixtures` — dev-only build ("Real Deal (fixtures)") whose side
@@ -298,6 +299,8 @@ Results must be identical across runs for the same input.
   share chart (Wilson range, before/after averages, split marker), change box,
   one plain sentence with counts, folded details; one key per card; real changes
   first; limitations note; brand kept out of labels. 195 tests. (DECISIONS #33–#44)
-- [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)
+- [x] Phase 7 — release: README, MIT LICENSE, icons, options page (badge,
+  debug), version 0.1.0; zero-network guaranteed by CSP connect-src 'self' plus
+  `npm run audit:network` (passes). 197 tests. (DECISIONS #46)
 ### v2
 - [ ] Phase 8 — search re-ranking (pipeline C)

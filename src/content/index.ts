@@ -1,7 +1,8 @@
 // Content script entry: routes by page type.
 
 import { viewFromUrl } from '../collect/views';
-import { debug } from '../debug';
+import { debug, setDebug } from '../debug';
+import { loadSettings } from '../settings';
 import { isLoadCommand, type LoadProgressMessage, type ReviewsSeenMessage } from '../messages';
 import { ratingInterval } from '../stats/rating';
 import { renderBadge } from './amazon/badge';
@@ -81,11 +82,15 @@ function runReviewsPage(): void {
   });
 }
 
-try {
-  const type = pageType(location.pathname);
-  if (type === 'product') runProductPage();
-  else if (type === 'reviews') runReviewsPage();
-} catch (e) {
-  // Never break the page.
-  debug('content script error', e);
-}
+void (async () => {
+  try {
+    const settings = await loadSettings();
+    setDebug(settings.debug);
+    const type = pageType(location.pathname);
+    if (type === 'product' && settings.showBadge) runProductPage();
+    else if (type === 'reviews') runReviewsPage();
+  } catch (e) {
+    // Never break the page.
+    debug('content script error', e);
+  }
+})();

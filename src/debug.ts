@@ -1,7 +1,12 @@
-// Debug logging, off in production builds. (Phase 7 adds an options-page toggle.)
+// Debug logging. On in dev builds; in production only when the user turns it on
+// in the options page (setDebug is called with the stored setting at startup).
 
-export const DEBUG: boolean = import.meta.env.MODE !== 'production';
+let enabled: boolean = import.meta.env.MODE !== 'production';
+
+export function setDebug(on: boolean): void {
+  enabled = on || import.meta.env.MODE !== 'production';
+}
 
 export function debug(...args: unknown[]): void {
-  if (DEBUG) console.debug('[Real Deal]', ...args);
+  if (enabled) console.debug('[Real Deal]', ...args);
 }
