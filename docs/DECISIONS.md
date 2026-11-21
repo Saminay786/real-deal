@@ -700,3 +700,23 @@ than polarity.
     redesign the display around plain language.
 - **Also.** The filter list now says "Every written review is collected. The
   remaining filters would add nothing" instead of showing "10 of 17" as unfinished.
+
+### 36. Fixes #31–#35 confirmed on real data (Timex, complete collection)
+- **Unstratified test** used for the complete collection: the "compared within star
+  levels" note is gone.
+- **Δ consistent with the shares:** "20% → 35%, Δ +15% [−3%, 31%]", "7% → 13%, Δ +7%".
+  Before #35 the latter read "Δ +21%".
+- **AI summary accepted and faithful:** "No theme changed clearly. The most
+  mentioned themes are Quality product (35% of reviews), Gifting item (19% of
+  reviews), Daily watch use (29% of reviews), and Value for money (11% of
+  reviews). Chain lock quality was mentioned in 9% of reviews." It states the global
+  finding first, writes every number as "% of reviews" next to its own theme's
+  whole-period share, and keeps sentiment consistent. It was trimmed from a longer answer.
+- **AI labels and sentiment fit the examples:** "Chain lock quality" (negative),
+  "Picture color match" (mixed: "colour not as shown"), "Gifting item" (positive).
+- **Status.** Phase 5 and the collection/next-step UI are verified end to end on
+  four real products (hooks, baby pyjamas, boAt Airdopes, Timex). Open items for
+  Phase 6: plain-language theme rows and per-theme charts; intervals shown only
+  for significant themes (#20); time-since-purchase caveat (#30); brand words in
+  keyword labels (#22B). Still to measure in the research notebook: theme stability
+  between runs (#24).
