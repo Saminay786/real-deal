@@ -1,18 +1,13 @@
-// Phase 4 debug list of theme shifts. Phase 6 replaces this with the trends UI.
+// Themes over time: one compact block per theme, one key per card (DECISIONS #41).
 import type { ThemeAnalysis } from '../themes/analyze';
-import type { Theme } from '../types';
-import { ThemeChange } from './ThemeChange';
+import type { ShiftResult, Theme } from '../types';
+import { monthName, rangeWords, signed, ThemeChange, VERDICT_TEXT, verdictOf } from './ThemeChange';
 
 export type ThemesState =
   | { kind: 'idle' }
   | { kind: 'running'; stage: string; done: number; total: number }
   | { kind: 'done'; analysis: ThemeAnalysis }
   | { kind: 'error'; message: string };
-
-const month = (iso: string) => {
-  const [y, m] = iso.split('-');
-  return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m) - 1] ?? '?'} ${y}`;
-};
 
 const STAGE: Record<string, string> = {
   'loading-model': 'Loading the language model…',
@@ -51,14 +46,80 @@ export function ThemesCard({ state, aiThemes, canRun, onRun }: Props) {
   );
 }
 
-function ThemeName({ t, fallback }: { t: Theme | undefined; fallback: string }) {
-  if (!t) return <strong>{fallback}</strong>;
+/** The single key for every graph in this card. */
+function Key() {
   return (
-    <>
-      <strong>{t.label}</strong>
-      {t.sentiment && <span class={`small senti ${t.sentiment}`}> {t.sentiment}</span>}
-      {t.labelSource === 'nano' && <span class="small muted"> ({t.topTerms.join(', ')})</span>}
-    </>
+    <div class="key small">
+      <span>
+        <i class="k-bar before" /> before
+      </span>
+      <span>
+        <i class="k-bar after" /> after
+      </span>
+      <span>
+        <i class="k-dot" /> change seen
+      </span>
+      <span>
+        <i class="k-box" /> true change could be here
+      </span>
+      <span>
+        <i class="k-zero" /> 0 = no change
+      </span>
+      <div class="muted">Box crosses the 0 line → could just be luck.</div>
+    </div>
+  );
+}
+
+function ThemeRow({ s, t }: { s: ShiftResult; t: Theme | undefined }) {
+  const v = verdictOf(s);
+  const before = Math.round(100 * s.before.share);
+  const after = Math.round(100 * s.after.share);
+  const d = Math.round(100 * s.diff);
+  const lo = Math.round(100 * s.diffCi[0]);
+  const hi = Math.round(100 * s.diffCi[1]);
+  return (
+    <li class="theme">
+      <div class="theme-head">
+        <strong>{t?.label ?? s.label}</strong>
+        {t?.sentiment && <span class={`small senti ${t.sentiment}`}>{t.sentiment}</span>}
+        <span class={`verdict ${v}`}>{VERDICT_TEXT[v]}</span>
+      </div>
+      <ThemeChange s={s} />
+      <p class="small theme-line">
+        {before}% → {after}% of reviews since {monthName(s.changeAt)} ({signed(d)} points).
+      </p>
+      <details class="small">
+        <summary>Details</summary>
+        <p>
+          The true change could be anything {rangeWords(lo, hi)}.{' '}
+          {v === 'real' && 'A jump this big is very unlikely to be luck.'}
+          {v === 'luck' &&
+            `With only ${s.before.n} reviews before and ${s.after.n} after, a gap this size often shows up even when nothing really changed.`}
+          {v === 'not-proven' &&
+            'We checked every month to find the biggest jump, and jumps this big still turn up by luck.'}
+        </p>
+        <p class="muted">
+          Test: p = {s.pValue.toFixed(3)}, q = {s.qValue.toFixed(3)} (“Real change” needs q ≤ 0.10).
+          {t?.labelSource === 'nano' && ` Keywords: ${t.topTerms.join(', ')}.`}
+        </p>
+        {(s.exemplars.before.length > 0 || s.exemplars.after.length > 0) && (
+          <>
+            <div class="muted">Examples before:</div>
+            <ul>
+              {s.exemplars.before.map((x, i) => (
+                <li key={`b${i}`}>“{x}”</li>
+              ))}
+            </ul>
+            <div class="muted">Examples after:</div>
+            <ul>
+              {s.exemplars.after.map((x, i) => (
+                <li key={`a${i}`}>“{x}”</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </details>
+    </li>
   );
 }
 
@@ -67,73 +128,20 @@ function Results({ a, themes }: { a: ThemeAnalysis; themes: readonly Theme[] }) 
   return (
     <>
       <p class="small muted">
-        {a.analysedReviews} reviews · {a.sentences} sentences · {a.themes.length} themes. {a.explanation}
-        {a.nonEnglishReviews > 0 && ` ${a.nonEnglishReviews} Hindi/Hinglish reviews not analysed (English model).`}
+        {a.analysedReviews} reviews · {a.themes.length} themes
+        {a.nonEnglishReviews > 0 && ` · ${a.nonEnglishReviews} Hindi/Hinglish reviews not analysed`}
       </p>
       {a.stratified && (
         <p class="small muted">
-          Star filters were used and not every review is collected, so each theme is compared only within the same
-          star level. A theme that rises only through more low-star reviews will not show as a change.
+          Star filters were used and not every review is collected, so each theme is compared within the same star
+          level. A theme that rises only through more low-star reviews won't show as a change.
         </p>
       )}
-      <details class="small legend">
-        <summary>How to read this</summary>
-        <ul>
-          <li>
-            <strong>Theme</strong>: a topic that reviews keep mentioning, found by grouping sentences with similar meaning.
-          </li>
-          <li>
-            <strong>Grey and blue bars</strong>: the share of reviews mentioning the theme <em>before</em> and{' '}
-            <em>after</em> one split month (all reviews on each side pooled, not month by month).
-          </li>
-          <li>
-            <strong>Change line</strong>: the <strong>dot</strong> is the change in points (after − before). The shaded{' '}
-            <strong>band</strong> is the likely range of the real change (95% confidence interval). The dashed line is{' '}
-            <strong>0 = no change</strong>. If the band covers 0, the change could be chance.
-          </li>
-          <li>
-            <strong>p</strong>: how often a change at least this big appears by pure chance, if nothing really changed
-            (from shuffling the review dates 999 times). Small p means unlikely to be chance.
-          </li>
-          <li>
-            <strong>q</strong>: p corrected for testing several themes at once. <strong>“changed”</strong> is shown only
-            when q ≤ 0.10. Otherwise it says “no clear change”, which means <em>not enough evidence</em>, not “proven
-            stable”.
-          </li>
-          <li>
-            <strong>positive / negative / mixed</strong>: the overall tone of the theme's sentences (on-device AI).
-          </li>
-        </ul>
-      </details>
       {a.dataSufficiency === 'insufficient' && <p class="small todo">Not enough data to test for changes.</p>}
-      <ol class="shifts">
+      {a.shifts.length > 0 && <Key />}
+      <ol class="themes">
         {a.shifts.map((s) => (
-          <li key={s.themeId}>
-            <div>
-              <ThemeName t={byId.get(s.themeId)} fallback={s.label} />{' '}
-              {s.significant ? <span class="ok">· changed</span> : <span class="muted">· no clear change</span>}
-            </div>
-            <ThemeChange s={s} />
-            <div class="small muted">
-              Test: p = {s.pValue.toFixed(3)}, q = {s.qValue.toFixed(3)} (“changed” needs q ≤ 0.10; split at{' '}
-              {month(s.changeAt)})
-            </div>
-            <details class="small">
-              <summary>Examples</summary>
-              <div class="muted">Before:</div>
-              <ul>
-                {s.exemplars.before.map((t, i) => (
-                  <li key={`b${i}`}>“{t}”</li>
-                ))}
-              </ul>
-              <div class="muted">After:</div>
-              <ul>
-                {s.exemplars.after.map((t, i) => (
-                  <li key={`a${i}`}>“{t}”</li>
-                ))}
-              </ul>
-            </details>
-          </li>
+          <ThemeRow key={s.themeId} s={s} t={byId.get(s.themeId)} />
         ))}
       </ol>
       {themes

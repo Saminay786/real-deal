@@ -16,3 +16,28 @@ describe('rangeWords (plain-language range, DECISIONS #38)', () => {
     expect(rangeWords(-12, 28)).toBe('from a 12-point drop to a 28-point rise');
   });
 });
+
+import { verdictOf } from '../../src/sidepanel/ThemeChange';
+import type { ShiftResult } from '../../src/types';
+
+const shift = (significant: boolean, ci: [number, number]): ShiftResult => ({
+  themeId: 0,
+  label: 'x',
+  changeAt: '2026-03-01',
+  before: { n: 75, k: 9, share: 0.12 },
+  after: { n: 30, k: 1, share: 0.03 },
+  diff: -0.09,
+  diffCi: ci,
+  pValue: significant ? 0.004 : 0.51,
+  qValue: significant ? 0.02 : 0.893,
+  significant,
+  exemplars: { before: [], after: [] },
+});
+
+describe('verdictOf (DECISIONS #41)', () => {
+  it('the test decides "Real change"; otherwise the range decides between luck and not proven', () => {
+    expect(verdictOf(shift(true, [-0.18, -0.02]))).toBe('real');
+    expect(verdictOf(shift(false, [-0.18, 0.06]))).toBe('luck'); // box crosses 0 (Timex "Customer appreciation")
+    expect(verdictOf(shift(false, [-0.13, -0.02]))).toBe('not-proven'); // box misses 0 but q > 0.10
+  });
+});

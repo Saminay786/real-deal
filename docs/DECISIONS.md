@@ -53,6 +53,7 @@ cause for each of them.)
 | 38 | Verdict sentence still jargon | It restated the statistics (range, 0, chance) instead of the conclusion and its reason (too few reviews). No non-statistician had read it. |
 | 39 | "What's the dashed line and the dot?" | Chart marks were explained only in a collapsed legend, with no value on the dot and no direction labels. It was designed by people who already knew the meanings. |
 | 40 | "Sometimes 3 bands, sometimes 2" | The ruler and the range band were both grey rounded strips; where the ruler stuck out it looked like extra bands. |
+| 41 | Repeated legends, messy list | Each clarification was added inside every theme block and reviewed for one theme, never for the whole list. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -797,3 +798,25 @@ than polarity.
   a distinct colour (blue when not significant, red or green when it is), with a
   solid outline. The key calls it the "coloured box". Rule: **different meanings
   never share colour and shape on a chart.**
+
+### 41. The repeated key made the theme list messy
+- **What happened.** The user: "these legends repeated is a mess; clear the visuals".
+  Each theme showed the graph, an identical three-part key, a four-line paragraph,
+  a "Test: p, q" line and "Examples". The verdict was buried in the paragraph.
+- **Why it happened.** Fixes #37–#40 each added explanation *where the confusion
+  happened*, inside every theme block. Explanations that should exist once were
+  repeated per theme, and nobody looked at the list as a whole with 7 themes.
+- **Why it wasn't caught earlier.** Each change was reviewed for one theme, the one
+  being discussed, never for the full list.
+- **Decision.** One compact block per theme:
+  1. a header line with the name, tone tag and a **verdict chip** ("Real change" /
+     "Could just be luck" / "Not proven");
+  2. the graph, with only the dot's value and a small "0" on it;
+  3. one line: "12% → 3% of reviews since Mar 2026 (−9 points)";
+  4. **Details** (folded): range in words, review counts and why it could be luck,
+     the p/q test, keywords, examples.
+
+  A **single key** at the top of the card shows the bar, dot, box and 0-line
+  symbols, plus "Box crosses the 0 line → could just be luck". The verdict rule is
+  `verdictOf` (tested).
+- **Rule.** Explain a symbol once per screen, not once per item.

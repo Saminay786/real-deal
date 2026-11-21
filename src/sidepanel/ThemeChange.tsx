@@ -1,12 +1,12 @@
-// Per-theme picture of "before vs after" and the change with its range
-// (the user asked for a visual for each number, DECISIONS #37). Inline SVG.
+// Per-theme picture of "before vs after" and the change with its range.
+// Compact: the key is shown once per card, details are folded (DECISIONS #41).
 
 import type { ShiftResult } from '../types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const month = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1] ?? '?'} ${iso.slice(0, 4)}`;
+export const monthName = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1] ?? '?'} ${iso.slice(0, 4)}`;
 const pct = (x: number) => Math.round(100 * x);
-const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
+export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
 
 /** "from a 6-point drop to a 24-point rise", "from a 3-point rise to a 20-point rise", … */
 export function rangeWords(lo: number, hi: number): string {
@@ -17,84 +17,71 @@ export function rangeWords(lo: number, hi: number): string {
   return `from ${word(lo)} to ${word(hi)}`;
 }
 
-const W = 260;
-const LABEL_W = 92;
-const BAR_W = W - LABEL_W - 40;
+export type Verdict = 'real' | 'luck' | 'not-proven';
 
+export function verdictOf(s: ShiftResult): Verdict {
+  if (s.significant) return 'real';
+  const lo = Math.round(100 * s.diffCi[0]);
+  const hi = Math.round(100 * s.diffCi[1]);
+  return lo <= 0 && hi >= 0 ? 'luck' : 'not-proven';
+}
+
+export const VERDICT_TEXT: Record<Verdict, string> = {
+  real: 'Real change',
+  luck: 'Could just be luck',
+  'not-proven': 'Not proven',
+};
+
+const W = 240;
+const LABEL_W = 64;
+
+/** The graph: before/after bars and the change box. No legend here: one key per card. */
 export function ThemeChange({ s }: { s: ShiftResult }) {
   const before = pct(s.before.share);
   const after = pct(s.after.share);
   const d = Math.round(100 * s.diff);
   const lo = Math.round(100 * s.diffCi[0]);
   const hi = Math.round(100 * s.diffCi[1]);
-  const crossesZero = lo <= 0 && hi >= 0;
-  const when = month(s.changeAt);
+  const when = monthName(s.changeAt);
 
-  // Bars: scale to the larger share (at least 10%) so small shares stay visible.
-  const top = Math.max(before, after, 10) * 1.15;
-  const bw = (v: number) => (BAR_W * v) / top;
+  const barMax = W - LABEL_W - 34;
+  const top = Math.max(before, after, 10) * 1.1;
+  const bw = (v: number) => (barMax * v) / top;
 
-  // Change line: symmetric around 0.
   const span = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(d), 5) * 1.15;
-  const x = (v: number) => LABEL_W + ((v + span) / (2 * span)) * (W - LABEL_W - 8);
-  // The band must never look like the ruler behind it (DECISIONS #40): not grey.
+  const x = (v: number) => LABEL_W + ((v + span) / (2 * span)) * (W - LABEL_W - 6);
   const tone = s.significant ? (d > 0 ? 'var(--up)' : 'var(--down)') : 'var(--band)';
 
   return (
-    <div class="tchange">
-      <svg viewBox={`0 0 ${W} 100`} width="100%" role="img" aria-label={`Before ${before}%, after ${after}%, change ${signed(d)} points, likely between ${signed(lo)} and ${signed(hi)}`}>
-        {/* before / after bars */}
-        <text x="0" y="13" class="tc-lab">Before {when}</text>
-        <rect x={LABEL_W} y="4" width={bw(before)} height="11" rx="2" class="tc-bar before" />
-        <text x={LABEL_W + bw(before) + 4} y="13" class="tc-val">{before}%</text>
+    <svg
+      class="tchange"
+      viewBox={`0 0 ${W} 70`}
+      width="100%"
+      role="img"
+      aria-label={`Before ${when}: ${before}%. After: ${after}%. Change ${signed(d)} points, true change between ${signed(lo)} and ${signed(hi)}.`}
+    >
+      <text x="0" y="11" class="tc-lab">Before</text>
+      <rect x={LABEL_W} y="3" width={bw(before)} height="10" rx="2" class="tc-bar before" />
+      <text x={LABEL_W + bw(before) + 4} y="11" class="tc-val">{before}%</text>
 
-        <text x="0" y="31" class="tc-lab">After {when}</text>
-        <rect x={LABEL_W} y="22" width={bw(after)} height="11" rx="2" class="tc-bar after" />
-        <text x={LABEL_W + bw(after) + 4} y="31" class="tc-val">{after}%</text>
+      <text x="0" y="26" class="tc-lab">After</text>
+      <rect x={LABEL_W} y="18" width={bw(after)} height="10" rx="2" class="tc-bar after" />
+      <text x={LABEL_W + bw(after) + 4} y="26" class="tc-val">{after}%</text>
 
-        {/* change: range band, zero line, dot (labelled, DECISIONS #39) */}
-        <text x="0" y="58" class="tc-lab">Change</text>
-        <text x={LABEL_W} y="42" class="tc-tick">← fewer mentions</text>
-        <text x={W - 8} y="42" class="tc-tick" text-anchor="end">more mentions →</text>
-        <line x1={LABEL_W} x2={W - 8} y1="54" y2="54" class="tc-axis" />
-        <rect
-          x={x(lo)}
-          y="47"
-          width={Math.max(2, x(hi) - x(lo))}
-          height="14"
-          rx="3"
-          style={{ fill: tone, fillOpacity: 0.28, stroke: tone, strokeWidth: 1.2 }}
-        />
-        <line x1={x(0)} x2={x(0)} y1="45" y2="63" class="tc-zero" />
-        <circle cx={x(d)} cy="54" r="4.5" style={{ fill: tone }} />
-        <text x={x(d)} y="72" class="tc-dot" text-anchor="middle">{signed(d)} seen</text>
-        <text x={x(lo)} y="84" class="tc-tick" text-anchor="middle">{signed(lo)}</text>
-        <text x={x(hi)} y="84" class="tc-tick" text-anchor="middle">{signed(hi)}</text>
-        <text x={x(0)} y="96" class="tc-tick" text-anchor="middle">┆ 0 = no change</text>
-      </svg>
-      <p class="small muted tc-key">
-        ● dot = change seen in these reviews · coloured box = where the true change could be · ┆ dashed line = no
-        change
-      </p>
-      <p class="small tc-caption">
-        Mentions went from <strong>{before}%</strong> to <strong>{after}%</strong> of reviews ({signed(d)} points). The
-        true change could be anything {rangeWords(lo, hi)}.{' '}
-        {s.significant ? (
-          <span class="ok">
-            <strong>Real change.</strong> A jump this big is very unlikely to be luck.
-          </span>
-        ) : crossesZero ? (
-          <span class="muted">
-            <strong>Could just be luck.</strong> With only {s.before.n} reviews before and {s.after.n} after, a gap this
-            size often shows up even when nothing really changed.
-          </span>
-        ) : (
-          <span class="muted">
-            <strong>Looks like a change, but not proven.</strong> We checked every month to find the biggest jump, and
-            jumps this big still turn up by luck.
-          </span>
-        )}
-      </p>
-    </div>
+      <text x="0" y="50" class="tc-lab">Change</text>
+      <line x1={LABEL_W} x2={W - 6} y1="46" y2="46" class="tc-axis" />
+      <rect
+        x={x(lo)}
+        y="39"
+        width={Math.max(2, x(hi) - x(lo))}
+        height="14"
+        rx="3"
+        style={{ fill: tone, fillOpacity: 0.25, stroke: tone, strokeWidth: 1.2 }}
+      />
+      <line x1={x(0)} x2={x(0)} y1="35" y2="57" class="tc-zero" />
+      <circle cx={x(d)} cy="46" r="4.5" style={{ fill: tone }} />
+      <text x={x(d)} y="66" class="tc-dot" text-anchor="middle">{signed(d)}</text>
+      <text x={x(0)} y="33" class="tc-tick" text-anchor="middle">0</text>
+    </svg>
   );
 }

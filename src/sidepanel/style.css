@@ -196,18 +196,111 @@ button.link.underline {
   stroke-dasharray: 2 2;
 }
 
-.tc-caption {
-  margin: 2px 0 4px;
-}
-
 .tchange .tc-dot {
   font-size: 9px;
   font-weight: 600;
 }
 
-.tc-key {
-  margin: 0 0 4px;
+/* One key per card (DECISIONS #41). */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 8px;
+  margin: 6px 0 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #0969da 7%, transparent);
+}
+
+.key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.key > div {
+  flex-basis: 100%;
+}
+
+.key i {
+  display: inline-block;
+}
+
+.k-bar {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.k-bar.before {
+  background: var(--bar-before);
+}
+
+.k-bar.after {
+  background: var(--bar-after);
+}
+
+.k-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--band);
+}
+
+.k-box {
+  width: 16px;
+  height: 9px;
+  border: 1.2px solid var(--band);
+  background: color-mix(in srgb, var(--band) 25%, transparent);
+  border-radius: 2px;
+}
+
+.k-zero {
+  width: 0;
+  height: 12px;
+  border-left: 1.5px dashed var(--fg);
+}
+
+.themes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.theme {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.theme-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.verdict {
+  margin-left: auto;
   font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.verdict.real {
+  background: #ffebe9;
+  color: #cf222e;
+}
+
+.verdict.luck,
+.verdict.not-proven {
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.theme-line {
+  margin: 0 0 2px;
 }
 
 .legend {
