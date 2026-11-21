@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
       await recordView(d, msg.asin, msg.view, ids, msg.viewTotal);
       // Only the unfiltered count is the product's total (filters show smaller numbers).
       const unfiltered = msg.view.star === 'all' && msg.view.reviewer === 'all';
-      await updateProductMeta(d, msg.asin, unfiltered ? msg.viewTotal : null);
+      await updateProductMeta(d, msg.asin, unfiltered ? msg.viewTotal : null, new Date(), msg.brand);
       debug(`stored ${added} new reviews for ${msg.asin} (total ${total})`);
       const update: CollectionUpdatedMessage = { type: 'rd:collection-updated', asin: msg.asin };
       // The side panel may be closed; that's fine.

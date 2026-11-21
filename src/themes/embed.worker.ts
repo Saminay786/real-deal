@@ -18,6 +18,7 @@ import {
 } from '../collect/store';
 import { ANALYSED_COUNTRY } from '../collect/summary';
 import { analyzeThemes, type ThemeAnalysis } from './analyze';
+import { brandStopWords } from './ctfidf';
 import { reviewSentences, type Sentence } from './sentences';
 
 export const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
@@ -108,11 +109,15 @@ async function analyze(asin: string): Promise<ThemeAnalysis> {
   // stratifying would only cost power (DECISIONS #35).
   const views = await getViewProgress(db, asin);
   const filtered = [...views.entries()].some(([key, p]) => key.split('|')[1] !== 'all' && p.seen > 0);
-  const total = (await getProductMeta(db, asin))?.totalReviews ?? null;
+  const meta = await getProductMeta(db, asin);
+  const total = meta?.totalReviews ?? null;
   const allReviews = await getReviews(db, asin);
   const complete = total !== null && allReviews.length >= total;
   const stratify = filtered && !complete;
-  return analyzeThemes(reviews, sentences, ordered, nonEnglish, { stratify });
+  return analyzeThemes(reviews, sentences, ordered, nonEnglish, {
+    stratify,
+    extraStopWords: brandStopWords(meta?.brand),
+  });
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {

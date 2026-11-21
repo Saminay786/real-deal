@@ -294,7 +294,10 @@ Results must be identical across runs for the same input.
   sentiment, summary from facts JSON with number validation, template
   fallback, download flow. Verified on real Nano 2026-11-21 (pyjamas): labels
   match examples, summary accepted (DECISIONS #21–#29). 170 tests.
-- [ ] Phase 6 — trends UI
+- [x] Phase 6 — trends UI: pinned next-step bar; per theme a verdict chip, monthly
+  share chart (Wilson range, before/after averages, split marker), change box,
+  one plain sentence with counts, folded details; one key per card; real changes
+  first; limitations note; brand kept out of labels. 195 tests. (DECISIONS #33–#44)
 - [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)
 ### v2
 - [ ] Phase 8 — search re-ranking (pipeline C)

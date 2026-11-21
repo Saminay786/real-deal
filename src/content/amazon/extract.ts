@@ -231,6 +231,22 @@ export function extractReviews(root: ParentNode, url: string): Review[] {
   return out;
 }
 
+/** Brand from "by <brand>" on a review page ("Visit the X Store" is reduced to X), or null. */
+export function extractBrand(doc: Document): string | null {
+  try {
+    const t = text(first(doc, REVIEWS.brand));
+    if (!t) return null;
+    const clean = t
+      .replace(/^visit the\s+/i, '')
+      .replace(/\s+store$/i, '')
+      .replace(/^brand:\s*/i, '')
+      .trim();
+    return clean || null;
+  } catch {
+    return null;
+  }
+}
+
 /** "1,283 customer reviews" on a review page, or null. */
 export function extractTotalReviews(doc: Document): number | null {
   try {

@@ -151,11 +151,17 @@ export async function updateProductMeta(
   asin: string,
   totalReviews: number | null,
   now: Date = new Date(),
+  brand: string | null = null,
 ): Promise<ProductMeta> {
   const prev = await db.get('products', asin);
   const best =
     totalReviews === null ? (prev?.totalReviews ?? null) : Math.max(totalReviews, prev?.totalReviews ?? 0);
-  const meta: ProductMeta = { asin, totalReviews: best, updatedAt: now.toISOString() };
+  const meta: ProductMeta = {
+    asin,
+    totalReviews: best,
+    brand: brand ?? prev?.brand ?? null,
+    updatedAt: now.toISOString(),
+  };
   await db.put('products', meta);
   return meta;
 }

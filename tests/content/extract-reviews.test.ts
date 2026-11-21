@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import {
+  extractBrand,
   extractReviews,
   extractTotalReviews,
   parseHelpful,
@@ -110,6 +111,14 @@ describe('extractReviews on saved pages', () => {
     );
     const [r] = extractReviews(doc, url);
     expect(r?.body).toBe('A terribly flimsy hook. I hung a calendar and a plastic colander on the wall, but it couldn’t hold them.');
+  });
+
+  it.each([
+    ['reviews-a-p1', 'Zulaxy'],
+    ['reviews-b-p1', 'SAYY'],
+    ['reviews-b-top', 'Misamo Enterprise'],
+  ])('reads the brand from "by <brand>" on %s', (name, brand) => {
+    expect(extractBrand(loadFixture(name).doc)).toBe(brand);
   });
 
   it('returns [] on a page without reviews', () => {

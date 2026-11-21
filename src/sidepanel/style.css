@@ -196,6 +196,40 @@ button.link.underline {
   stroke-dasharray: 2 2;
 }
 
+/* Monthly sparkline (Phase 6). */
+.sp-band {
+  fill: var(--band);
+  fill-opacity: 0.12;
+}
+
+.sp-line {
+  fill: none;
+  stroke: var(--band);
+  stroke-width: 1.2;
+}
+
+.sp-dot {
+  fill: var(--band);
+}
+
+.sp-avg {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.sp-avg.before {
+  stroke: var(--bar-before);
+}
+
+.sp-avg.after {
+  stroke: var(--bar-after);
+}
+
+.tchange .sp-avg-label {
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .tchange .tc-dot {
   font-size: 9px;
   font-weight: 600;
@@ -238,6 +272,36 @@ button.link.underline {
 
 .k-bar.after {
   background: var(--bar-after);
+}
+
+.k-line {
+  width: 16px;
+  height: 0;
+  border-top: 1.5px solid var(--band);
+}
+
+.theme.is-real {
+  border-left: 4px solid var(--up);
+  padding-left: 8px;
+  margin-left: -4px;
+}
+
+.headline {
+  font-weight: 600;
+  margin: 6px 0;
+}
+
+.headline.real {
+  color: var(--up);
+}
+
+.limits {
+  margin-top: 8px;
+}
+
+.limits ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
 }
 
 .k-dot {

@@ -18,9 +18,21 @@ export const STOP_WORDS = new Set(
   ).split(/\s+/),
 );
 
-/** Lowercased letter-words of 2+ characters, apostrophes removed, stop words dropped. */
-export function tokenize(s: string): string[] {
-  return (s.toLowerCase().replace(/['’]/g, '').match(/\p{L}{2,}/gu) ?? []).filter((w) => !STOP_WORDS.has(w));
+/** Lowercased letter-words of 2+ characters, apostrophes removed, stop words (and `extra`) dropped. */
+export function tokenize(s: string, extra?: ReadonlySet<string>): string[] {
+  return (s.toLowerCase().replace(/['’]/g, '').match(/\p{L}{2,}/gu) ?? []).filter(
+    (w) => !STOP_WORDS.has(w) && !extra?.has(w),
+  );
+}
+
+/**
+ * Brand words to keep out of labels ("Lush Plush" → lush, plush; "boAt" → boat):
+ * a brand is frequent in one cluster only, so c-TF-IDF ranked it as a theme word
+ * (DECISIONS #22B, #44). Only the brand, not the title: titles contain real topic
+ * words ("Wall", "Adhesive").
+ */
+export function brandStopWords(brand: string | null | undefined): Set<string> {
+  return new Set((brand ?? '').toLowerCase().replace(/['’]/g, '').match(/\p{L}{2,}/gu) ?? []);
 }
 
 export interface ClassTerms {
@@ -30,10 +42,10 @@ export interface ClassTerms {
 }
 
 /** c-TF-IDF top terms for each class. `docs[c]` are the sentences of class c. */
-export function ctfidf(docs: readonly (readonly string[])[], top = 3): ClassTerms[] {
+export function ctfidf(docs: readonly (readonly string[])[], top = 3, extraStop?: ReadonlySet<string>): ClassTerms[] {
   const tf = docs.map((sentences) => {
     const m = new Map<string, number>();
-    for (const s of sentences) for (const w of tokenize(s)) m.set(w, (m.get(w) ?? 0) + 1);
+    for (const s of sentences) for (const w of tokenize(s, extraStop)) m.set(w, (m.get(w) ?? 0) + 1);
     return m;
   });
   const f = new Map<string, number>();

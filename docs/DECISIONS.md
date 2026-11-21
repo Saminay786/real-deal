@@ -871,3 +871,32 @@ than polarity.
   for 40% → 32% means the true after-share is anywhere from about 14 to 50 per 100
   reviews (vs 40 before), in **percentage points**, not relative percent. The UI
   should say "out of 100 reviews" where space allows.
+
+## 2026-11-22 · Phase 6: trends UI
+
+### 44. Phase 6 design choices
+- **Monthly chart replaces before/after bars.** The bars hid *when* things moved.
+  Each theme now shows its share per time bucket (Wilson range shaded), the
+  before/after averages as flat segments with their %, and a dashed marker at the
+  split month, with start and end months on the axis. The change box (#37–#41) stays
+  underneath. One key per card explains both.
+- **Real changes first and highlighted:** a headline ("2 themes changed clearly.
+  Shown first." / "No theme changed clearly over this period."), red left edge on
+  "Real change" blocks. Sorting was already significant-first, then |Δ|.
+- **Limitations note** (folded): only viewed reviews; "could be luck" means not
+  enough data; ageing units (#30); merged topics (#43); Hinglish skipped (#16);
+  reviewers are not all buyers.
+- **Brand words out of keyword labels (#22B).**
+  - *Why it happened:* a brand ("Lush Plush") appears often in one cluster only,
+    which is exactly what c-TF-IDF rewards.
+  - *Why only the brand:* the whole title was considered, but titles contain real
+    topic words ("Photo Frame Hooks for **Wall** … Self **Adhesive** … **Strong**"),
+    and removing them would erase the hooks' main complaint theme.
+  - *How:* the brand is read from "by <brand>" (`data-hook="cr-product-byline"`) on
+    review pages (tested on 3 fixtures: Zulaxy, SAYY, Misamo Enterprise), stored
+    with the product, and passed to c-TF-IDF as extra stop words.
+- **Range in everyday units (#43):** Details now adds "out of every 100 reviews, 14
+  to 50 instead of 40".
+- **Deferred to research:** splitting merged clusters (#43), label stability (#24),
+  a "probably stable" verdict for narrow ranges (needs an honest, post-selection-aware
+  interval first).

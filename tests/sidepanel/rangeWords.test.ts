@@ -41,3 +41,14 @@ describe('verdictOf (DECISIONS #41)', () => {
     expect(verdictOf(shift(false, [-0.13, -0.02]))).toBe('not-proven'); // box misses 0 but q > 0.10
   });
 });
+
+import { per100 } from '../../src/sidepanel/ThemeChange';
+
+describe('per100 (DECISIONS #43–#44)', () => {
+  it('turns a point range into "out of every 100 reviews"', () => {
+    // Product quality: 40% before, range −26 … +10 → 14 to 50 instead of 40
+    expect(per100(0.4, -26, 10)).toBe('out of every 100 reviews, 14 to 50 instead of 40');
+    // clamps at 0 and 100
+    expect(per100(0.05, -9, 22)).toBe('out of every 100 reviews, 0 to 27 instead of 5');
+  });
+});

@@ -5,7 +5,7 @@ import { debug } from '../debug';
 import { isLoadCommand, type LoadProgressMessage, type ReviewsSeenMessage } from '../messages';
 import { ratingInterval } from '../stats/rating';
 import { renderBadge } from './amazon/badge';
-import { extractProduct, extractTotalReviews } from './amazon/extract';
+import { extractBrand, extractProduct, extractTotalReviews } from './amazon/extract';
 import { countReviewsOnPage, loadView } from './amazon/loader';
 import { watchReviews } from './amazon/observer';
 import { asinFromPath, pageType } from './page';
@@ -38,6 +38,7 @@ function runReviewsPage(): void {
         asin,
         view: viewFromUrl(location.href),
         viewTotal: extractTotalReviews(document),
+        brand: extractBrand(document),
         reviews,
       };
       debug(`sending ${reviews.length} reviews for ${asin}`);

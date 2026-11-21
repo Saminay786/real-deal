@@ -34,6 +34,8 @@ export interface AnalyzeOptions extends ClusterOptions {
    * which stratifying would hide. Default false.
    */
   stratify?: boolean;
+  /** Words kept out of keyword labels, e.g. the brand (DECISIONS #44). */
+  extraStopWords?: ReadonlySet<string>;
 }
 
 /**
@@ -67,7 +69,7 @@ export function analyzeThemes(
   // Labels, sizes, most typical sentences (closest to the centroid) and mean stars.
   const docs: string[][] = Array.from({ length: k }, () => []);
   sentences.forEach((s, i) => docs[labels[i] ?? 0]?.push(s.text));
-  const terms = ctfidf(docs);
+  const terms = ctfidf(docs, 3, opts.extraStopWords);
   const ratingOf = new Map(reviews.map((r) => [r.reviewId, r.rating]));
   const themes: Theme[] = docs.map((d, id) => {
     const members = sentences

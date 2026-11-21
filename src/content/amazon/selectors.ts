@@ -46,6 +46,8 @@ export const REVIEWS = {
   /** Separator icons between variant parts ("Size: … | Colour: …"). */
   variantSeparator: ['.a-icon-text-separator'],
   helpful: ['[data-hook="helpful-vote-statement"]'],
+  /** "by <brand>" under the product title on review pages; its link text is the brand. */
+  brand: ['[data-hook="cr-product-byline"] a', '#bylineInfo'],
   /** "1,283 customer reviews" (changes when a star filter is applied). */
   totalReviews: ['[data-hook="cr-filter-info-review-rating-count"]'],
   /** "Show 10 more reviews" button (AJAX, appends to the list). */

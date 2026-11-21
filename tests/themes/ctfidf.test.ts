@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { ctfidf, tokenize } from '../../src/themes/ctfidf';
+import { brandStopWords, ctfidf, tokenize } from '../../src/themes/ctfidf';
+
+describe('brand words (DECISIONS #44)', () => {
+  it('splits a brand into lower-case words', () => {
+    expect([...brandStopWords('Lush Plush')]).toEqual(['lush', 'plush']);
+    expect([...brandStopWords('boAt')]).toEqual(['boat']);
+    expect(brandStopWords(null).size).toBe(0);
+  });
+
+  it('keeps the brand out of labels, so the topic words come through', () => {
+    // Real case: "thanks, lush, plush" on the Lush Plush pyjamas.
+    const docs = [
+      ['thank you lush plush', 'lush plush is great', 'thanks lush plush team'],
+      ['fabric is soft', 'soft fabric material'],
+    ];
+    expect(ctfidf(docs)[0]?.terms).toContain('lush');
+    const withoutBrand = ctfidf(docs, 3, brandStopWords('Lush Plush'))[0]?.terms ?? [];
+    expect(withoutBrand).not.toContain('lush');
+    expect(withoutBrand).not.toContain('plush');
+    expect(withoutBrand).toEqual(['great', 'team', 'thank']); // ties broken alphabetically
+  });
+});
 
 describe('tokenize', () => {
   it('lowercases, drops stop words, short words and apostrophes', () => {

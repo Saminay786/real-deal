@@ -12,6 +12,8 @@ export interface ReviewsSeenMessage {
   view: ReviewView;
   /** "N customer reviews" shown for this view (smaller when filtered). */
   viewTotal: number | null;
+  /** Brand from "by <brand>", used to keep it out of theme labels. */
+  brand: string | null;
   reviews: Review[];
 }
 

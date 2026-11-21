@@ -34,6 +34,8 @@ export interface ProductMeta {
   asin: string;
   /** Written reviews on Amazon ("1,283 customer reviews"); largest value seen. */
   totalReviews: number | null;
+  /** Brand from the review page ("by TIMEX"), kept out of theme labels. */
+  brand?: string | null;
   updatedAt: string;
 }
 
