@@ -849,3 +849,25 @@ than polarity.
 - **Open.** Broad clusters still get specific names. Options: give Nano a random
   sample of the cluster (not just the centre) so the name reflects its breadth, or
   show each theme's coherence (within-cluster similarity) and flag broad ones.
+
+### 43. Typical exemplars reveal a merged cluster, and a possible real signal inside it
+- **Observation (after #42, Timex).** For "Chain/lock quality" (5% → 13%, 3 of 60 → 6
+  of 45 reviews, could be luck), the most typical sentences **before** Mar 2025 are
+  all about **packaging** ("Should provide a better cover & paper carry bag…", "inner
+  packaging…"). Those **after** are all **chain-lock failures** ("chain lock opened in
+  just 2 months", "Poor quality of chain lock easily open").
+- **Why it matters.** The cluster is two topics. The change test sees "packaging or
+  clasp" mentions and finds little. A clasp-only theme might show a clearer rise,
+  with those complaints appearing only from 2025, but it is ~3–6 reviews, so it
+  cannot be confirmed. Merging hides potential signals, and the user's question
+  ("what are we trying to infer?") is exactly what this example makes concrete.
+- **Why it happened.** k is chosen by silhouette over 3–8 on short texts (#24); with
+  105 reviews, small topics like "clasp" get absorbed into the nearest larger one.
+- **Decision (open, for Phase 6 / research).** Consider: (a) allow more, smaller
+  clusters when the silhouette gap is small; (b) sub-cluster any theme whose before-
+  and after-exemplars diverge; (c) show "this theme mixes several topics" when
+  within-cluster coherence is low. Evaluate on the research dataset before choosing.
+- **Reading the range (user question).** "From a 26-point drop to a 10-point rise"
+  for 40% → 32% means the true after-share is anywhere from about 14 to 50 per 100
+  reviews (vs 40 before), in **percentage points**, not relative percent. The UI
+  should say "out of 100 reviews" where space allows.
