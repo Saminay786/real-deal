@@ -52,6 +52,7 @@ cause for each of them.)
 | 37 | "Range of what?" | Five statistics in one line of notation. The relationships (pooled shares → difference → range → 0) were never drawn, and the format was designed by people who already read CIs. |
 | 38 | Verdict sentence still jargon | It restated the statistics (range, 0, chance) instead of the conclusion and its reason (too few reviews). No non-statistician had read it. |
 | 39 | "What's the dashed line and the dot?" | Chart marks were explained only in a collapsed legend, with no value on the dot and no direction labels. It was designed by people who already knew the meanings. |
+| 40 | "Sometimes 3 bands, sometimes 2" | The ruler and the range band were both grey rounded strips; where the ruler stuck out it looked like extra bands. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -781,3 +782,18 @@ than polarity.
   these reviews · shaded band = where the true change could be · ┆ dashed line =
   no change". General rule: **every mark on a chart is labelled where it appears**,
   not only in a legend.
+
+### 40. "Sometimes 3 bands, sometimes 2"
+- **What happened.** The user saw a varying number of "bands" on the change line.
+- **Why it happened.** There is only one range band, but the ruler behind it was a
+  solid grey line and the band was also grey (for non-significant themes), with a
+  similar rounded shape. The ruler sticking out on both sides read as three strips.
+  When the band reached one end of the ruler (its scale is set by the larger end of
+  the range), only one side stuck out and it read as two.
+- **Why it wasn't caught earlier.** It was checked against the design intent, not
+  looked at as a stranger would. Same colour plus similar shape means the same thing
+  to a reader.
+- **Decision.** The ruler is a faint dotted hairline. The band is a taller box in
+  a distinct colour (blue when not significant, red or green when it is), with a
+  solid outline. The key calls it the "coloured box". Rule: **different meanings
+  never share colour and shape on a chart.**

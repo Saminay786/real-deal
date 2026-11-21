@@ -37,7 +37,8 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
   // Change line: symmetric around 0.
   const span = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(d), 5) * 1.15;
   const x = (v: number) => LABEL_W + ((v + span) / (2 * span)) * (W - LABEL_W - 8);
-  const tone = s.significant ? (d > 0 ? 'var(--up)' : 'var(--down)') : 'var(--muted)';
+  // The band must never look like the ruler behind it (DECISIONS #40): not grey.
+  const tone = s.significant ? (d > 0 ? 'var(--up)' : 'var(--down)') : 'var(--band)';
 
   return (
     <div class="tchange">
@@ -56,7 +57,14 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
         <text x={LABEL_W} y="42" class="tc-tick">← fewer mentions</text>
         <text x={W - 8} y="42" class="tc-tick" text-anchor="end">more mentions →</text>
         <line x1={LABEL_W} x2={W - 8} y1="54" y2="54" class="tc-axis" />
-        <rect x={x(lo)} y="49" width={Math.max(2, x(hi) - x(lo))} height="10" rx="5" style={{ fill: tone, opacity: 0.25 }} />
+        <rect
+          x={x(lo)}
+          y="47"
+          width={Math.max(2, x(hi) - x(lo))}
+          height="14"
+          rx="3"
+          style={{ fill: tone, fillOpacity: 0.28, stroke: tone, strokeWidth: 1.2 }}
+        />
         <line x1={x(0)} x2={x(0)} y1="45" y2="63" class="tc-zero" />
         <circle cx={x(d)} cy="54" r="4.5" style={{ fill: tone }} />
         <text x={x(d)} y="72" class="tc-dot" text-anchor="middle">{signed(d)} seen</text>
@@ -65,7 +73,8 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
         <text x={x(0)} y="96" class="tc-tick" text-anchor="middle">┆ 0 = no change</text>
       </svg>
       <p class="small muted tc-key">
-        ● dot = change seen in these reviews · shaded band = where the true change could be · ┆ dashed line = no change
+        ● dot = change seen in these reviews · coloured box = where the true change could be · ┆ dashed line = no
+        change
       </p>
       <p class="small tc-caption">
         Mentions went from <strong>{before}%</strong> to <strong>{after}%</strong> of reviews ({signed(d)} points). The

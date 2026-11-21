@@ -152,6 +152,7 @@ button.link.underline {
 :root {
   --up: #cf222e;
   --down: #1a7f37;
+  --band: #0969da;
   --bar-before: #8c959f;
   --bar-after: #0969da;
 }
@@ -182,9 +183,11 @@ button.link.underline {
   fill: var(--bar-after);
 }
 
+/* Ruler: a hairline only, so it can't be mistaken for the range band. */
 .tc-axis {
   stroke: var(--border);
-  stroke-width: 1;
+  stroke-width: 0.6;
+  stroke-dasharray: 1 3;
 }
 
 .tc-zero {
