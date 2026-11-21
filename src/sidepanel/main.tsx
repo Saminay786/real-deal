@@ -22,7 +22,7 @@ import {
 import { decideStep } from './decide';
 import { NextStep, type Step } from './NextStep';
 import { asinFromPath, pageType, type PageType } from '../content/page';
-import { isCollectionUpdated, isLoadProgress, type LoadViewCommand } from '../messages';
+import { isCollectionUpdated, isLoadProgress, isSearchReady, type LoadViewCommand } from '../messages';
 import { CollectionCard } from './CollectionCard';
 import { FixtureSaver } from './FixtureSaver';
 import type { WorkerRequest, WorkerResponse } from '../themes/embed.worker';
@@ -89,15 +89,28 @@ function App() {
     error: null,
   });
 
-  /** Asks the search page's content script for scored results (or to sort / restore them). */
-  const searchCmd = async (cmd: SearchCommand) => {
+  /**
+   * Asks the search page's content script for scored results (or to sort / restore them).
+   * The page script starts only after the page finishes loading, so early asks are
+   * retried, and the script also announces itself with 'rd:search-ready' (DECISIONS #52).
+   */
+  const searchCmd = async (cmd: SearchCommand, attempt = 0): Promise<void> => {
     const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (t?.id === undefined) return;
     try {
       const info = (await chrome.tabs.sendMessage(t.id, cmd)) as SearchInfo;
       setSearch({ url: t.url ?? null, info, error: null });
     } catch {
-      setSearch({ url: t.url ?? null, info: null, error: 'This tab was opened before Real Deal was updated. Press F5 on it.' });
+      if (attempt < 4) {
+        setSearch({ url: t.url ?? null, info: null, error: null }); // "Reading search results…"
+        setTimeout(() => void searchCmd(cmd, attempt + 1), 800 * (attempt + 1));
+      } else {
+        setSearch({
+          url: t.url ?? null,
+          info: null,
+          error: 'Real Deal is not running on this tab yet. Reload the extension at chrome://extensions, then press F5 here.',
+        });
+      }
     }
   };
 
@@ -162,6 +175,7 @@ function App() {
     void refresh();
     const onMsg = (m: unknown) => {
       if (isCollectionUpdated(m)) void refresh();
+      if (isSearchReady(m)) void searchCmd({ type: 'rd:search-info' });
       if (isLoadProgress(m)) setLoad({ running: m.running, loaded: m.loaded, end: m.end, error: null });
     };
     const onTab = () => void refresh();
@@ -275,7 +289,14 @@ function App() {
     <main>
       <h1>Real Deal</h1>
       <NextStep step={onSearchPage ? { kind: 'search' } : step} error={onSearchPage ? null : load.error} />
-      {onSearchPage && <SearchCard info={search.info} error={search.error} onSort={(by) => void searchCmd({ type: 'rd:search-sort', byScore: by })} />}
+      {onSearchPage && (
+        <SearchCard
+          info={search.info}
+          error={search.error}
+          onSort={(by) => void searchCmd({ type: 'rd:search-sort', byScore: by })}
+          onRetry={() => void searchCmd({ type: 'rd:search-info' })}
+        />
+      )}
       {!onSearchPage && tab.asin && summary && (
         <>
           {ai && ai.asin === tab.asin && themes?.state.kind === 'done' && (

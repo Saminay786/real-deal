@@ -8,12 +8,22 @@ export function SearchCard({
   info,
   error,
   onSort,
+  onRetry,
 }: {
   info: SearchInfo | null;
   error: string | null;
   onSort: (byScore: boolean) => void;
+  onRetry: () => void;
 }) {
-  if (error) return <section class="card"><p class="small warn">{error}</p></section>;
+  if (error)
+    return (
+      <section class="card">
+        <p class="small warn">{error}</p>
+        <button type="button" onClick={onRetry}>
+          Try again
+        </button>
+      </section>
+    );
   if (!info) return <section class="card"><p class="small muted">Reading search results…</p></section>;
   const scored = info.results.filter((r) => r.score !== null);
   const top = [...scored].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);

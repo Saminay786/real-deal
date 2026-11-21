@@ -57,6 +57,7 @@ cause for each of them.)
 | 42 | Examples off-topic; % hid 3-vs-6 counts | Exemplars were picked by date proximity to the change, not typicality. The broad cluster was named from its centre only. Counts were not shown. |
 | 49 | (Prevented) bursts created by our own sampling | Star-filtered views hold only the most recent 100 of one star level, and pooled they form a dense recent all-positive cluster. Unit tests use single coherent streams. |
 | 51 | Committed with a test timing out | Large fixtures parse slowly under parallel load, and only the new tests were run before committing. |
+| 52 | Search panel stuck on "press F5"; no scores | The panel asked once when loading started, before the content script existed, and never retried. Search scores shared the rating-badge switch the user had turned off. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -1049,3 +1050,26 @@ The Python implementation reproduces the extension's hand-computed test values (
   happened in the same step as the commit, and its failure line was overlooked.
 - **Decision.** `testTimeout: 20_000` in `vitest.config.ts`. 216/216 pass in the full suite. Process rule:
   **run the full suite and read its result before every commit**, not just the new tests.
+
+### 52. Search page: panel said "press F5" forever, and no scores on the cards
+- **What happened.** On a search page the side panel showed "This tab was opened before Real Deal was updated.
+  Press F5" even after 10 reloads and in a brand-new tab, and no score badges appeared on the cards.
+- **Why it happened.**
+  1. *Timing.* The panel asked the page for results as soon as the tab's URL changed, which happens when the
+     page **starts** loading. Chrome injects the content script only at `document_idle`, after loading, so
+     nobody was listening. The panel stored the error and only asked again when the URL changed, and F5
+     keeps the URL, so it never recovered. (Review pages never hit this: there the page pushes data to the
+     panel, rather than the panel pulling.)
+  2. *Shared switch.* Search scores obeyed the "Show the rating range badge" option, which the user had been
+     asked to switch off as a Phase 7 test. Most likely the scores were simply turned off.
+  3. *Fragile order.* The content script drew badges **before** registering its message listener, so any
+     error while drawing would also have silenced the panel.
+- **Why it wasn't caught earlier.** Unit tests call the content functions directly. Nothing tests the
+  panel ↔ page message timing, which exists only in a real browser. The settings test covered values, not
+  which feature each switch controls.
+- **Decision.** (a) The content script registers its listener first and announces `rd:search-ready`; the panel
+  re-asks on that message and retries up to 4 times (0.8–3.2 s apart) before showing an error, which now has
+  a **Try again** button. (b) Separate option **"Show scores on search results"** (default on). (c) Badge
+  drawing is wrapped so it can't block the listener.
+- **Lesson.** For panel ↔ page features, the page should announce readiness, and "pull once on navigation" is
+  never enough.

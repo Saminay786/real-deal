@@ -33,6 +33,18 @@ function Options() {
           </span>
         </label>
         <label class="opt">
+          <input
+            type="checkbox"
+            checked={s.showSearchScores}
+            onChange={(e) => update({ showSearchScores: e.currentTarget.checked })}
+          />
+          <span>
+            <strong>Show scores on search results</strong>
+            <br />
+            <span class="small muted">"Real Deal score 4.25" under each product on amazon.in search pages.</span>
+          </span>
+        </label>
+        <label class="opt">
           <input type="checkbox" checked={s.debug} onChange={(e) => update({ debug: e.currentTarget.checked })} />
           <span>
             <strong>Debug logging</strong>

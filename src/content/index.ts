@@ -9,6 +9,7 @@ import {
   type LoadProgressMessage,
   type ReviewsSeenMessage,
   type SearchInfo,
+  type SearchReadyMessage,
 } from '../messages';
 import { rankingScore, ratingInterval } from '../stats/rating';
 import { extractSearchResults, renderScoreBadges, reorderCards } from './amazon/search';
@@ -91,7 +92,7 @@ function runReviewsPage(): void {
 
 /** Search page: score badges on cards; the side panel can read results and sort this page. */
 function runSearchPage(showBadges: boolean): void {
-  if (showBadges) renderScoreBadges(document);
+  // Listen first, so nothing below can stop the side panel from reaching this page (DECISIONS #52).
   let sorted = false;
   const info = (): SearchInfo => ({
     sortedByScore: sorted,
@@ -109,6 +110,14 @@ function runSearchPage(showBadges: boolean): void {
     sendResponse(info());
     return false;
   });
+  // The side panel may have asked before this script existed: tell it we are ready.
+  const ready: SearchReadyMessage = { type: 'rd:search-ready' };
+  chrome.runtime.sendMessage(ready).catch(() => undefined);
+  try {
+    if (showBadges) renderScoreBadges(document);
+  } catch (e) {
+    debug('score badges failed', e);
+  }
 }
 
 void (async () => {
@@ -118,7 +127,7 @@ void (async () => {
     const type = pageType(location.pathname);
     if (type === 'product' && settings.showBadge) runProductPage();
     else if (type === 'reviews') runReviewsPage();
-    else if (type === 'search') runSearchPage(settings.showBadge);
+    else if (type === 'search') runSearchPage(settings.showSearchScores);
   } catch (e) {
     // Never break the page.
     debug('content script error', e);

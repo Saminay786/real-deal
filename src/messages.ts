@@ -57,7 +57,16 @@ export interface SearchInfo {
   sortedByScore: boolean;
 }
 
+/** Content script -> side panel: the search page script is running and listening. */
+export interface SearchReadyMessage {
+  type: 'rd:search-ready';
+}
+
 const obj = (m: unknown): m is Record<string, unknown> => typeof m === 'object' && m !== null;
+
+export function isSearchReady(m: unknown): m is SearchReadyMessage {
+  return obj(m) && m.type === 'rd:search-ready';
+}
 
 export function isSearchCommand(m: unknown): m is SearchCommand {
   return obj(m) && (m.type === 'rd:search-info' || (m.type === 'rd:search-sort' && typeof m.byScore === 'boolean'));
