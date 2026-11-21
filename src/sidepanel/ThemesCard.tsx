@@ -72,10 +72,39 @@ function Results({ a, themes }: { a: ThemeAnalysis; themes: readonly Theme[] }) 
       </p>
       {a.stratified && (
         <p class="small muted">
-          Star filters were used while collecting, so each theme is compared only within the same star level. A theme
-          that rises only through more low-star reviews will not show as a change.
+          Star filters were used and not every review is collected, so each theme is compared only within the same
+          star level. A theme that rises only through more low-star reviews will not show as a change.
         </p>
       )}
+      <details class="small legend">
+        <summary>How to read this</summary>
+        <ul>
+          <li>
+            <strong>Theme</strong>: a topic that reviews keep mentioning, found by grouping sentences with similar meaning.
+          </li>
+          <li>
+            <strong>40% → 32% of reviews, from May 2023</strong>: the share of reviews that mention this theme before and
+            after the month where a change is most likely.
+          </li>
+          <li>
+            <strong>Δ (delta) = the change</strong> in that share, in percentage points, with a 95% range in brackets.
+            Treat it as a rough guide: it is computed after picking the most likely month, so it looks more certain than
+            it is.
+          </li>
+          <li>
+            <strong>p</strong>: how often a change at least this big appears by pure chance, if nothing really changed
+            (from shuffling the review dates 999 times). Small p means unlikely to be chance.
+          </li>
+          <li>
+            <strong>q</strong>: p corrected for testing several themes at once. <strong>“changed”</strong> is shown only
+            when q ≤ 0.10. Otherwise it says “no clear change”, which means <em>not enough evidence</em>, not “proven
+            stable”.
+          </li>
+          <li>
+            <strong>positive / negative / mixed</strong>: the overall tone of the theme's sentences (on-device AI).
+          </li>
+        </ul>
+      </details>
       {a.dataSufficiency === 'insufficient' && <p class="small todo">Not enough data to test for changes.</p>}
       <ol class="shifts">
         {a.shifts.map((s) => (

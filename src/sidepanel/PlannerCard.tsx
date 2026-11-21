@@ -24,10 +24,12 @@ interface Props {
   progress: ReadonlyMap<string, ViewProgress>;
   load: LoadState;
   onOpen: (v: ReviewView) => void;
+  /** Every written review on Amazon has been collected. */
+  allCollected?: boolean;
 }
 
 /** All sort/filter views, folded away: the next-step bar at the top drives collection. */
-export function PlannerCard({ current, progress, load, onOpen }: Props) {
+export function PlannerCard({ current, progress, load, onOpen, allCollected = false }: Props) {
   const currentKey = current ? viewKey(current) : null;
   const done = PLAN.filter((v) => {
     const s = viewStatus(progress.get(viewKey(v)));
@@ -37,6 +39,9 @@ export function PlannerCard({ current, progress, load, onOpen }: Props) {
   return (
     <section class="card">
       {!load.running && load.end && <p class={`small ${load.end === 'captcha' ? 'warn' : 'muted'}`}>{END_TEXT[load.end]}</p>}
+      {allCollected && (
+        <p class="small ok">✓ Every written review is collected. The remaining filters would add nothing.</p>
+      )}
       <details>
         <summary>
           All review filters ({done} of {PLAN.length} done)

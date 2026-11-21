@@ -261,7 +261,7 @@ function App() {
             />
           )}
           <CollectionCard s={summary} onReviewsPage={tab.type === 'reviews'} />
-          <PlannerCard current={current} progress={progress} load={load} onOpen={open} />
+          <PlannerCard current={current} progress={progress} load={load} onOpen={open} allCollected={allCollected} />
         </>
       )}
       {import.meta.env.MODE === 'fixtures' && <FixtureSaver />}

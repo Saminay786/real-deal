@@ -9,6 +9,7 @@ import { env, pipeline, type FeatureExtractionPipeline } from '@huggingface/tran
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url';
 import {
   getEmbeddings,
+  getProductMeta,
   getReviews,
   getViewProgress,
   openStore,
@@ -102,9 +103,15 @@ async function analyze(asin: string): Promise<ThemeAnalysis> {
 
   post({ type: 'progress', stage: 'clustering', done: 0, total: 1 });
   const ordered = sentences.map((s) => vectors.get(s.reviewId)?.[s.index] ?? new Float32Array(384));
-  // Star-filtered views distort the star mix over time → compare within star levels.
+  // Star-filtered views distort the star mix over time → compare within star levels,
+  // unless every written review was collected: then the mix is the real one and
+  // stratifying would only cost power (DECISIONS #35).
   const views = await getViewProgress(db, asin);
-  const stratify = [...views.entries()].some(([key, p]) => key.split('|')[1] !== 'all' && p.seen > 0);
+  const filtered = [...views.entries()].some(([key, p]) => key.split('|')[1] !== 'all' && p.seen > 0);
+  const total = (await getProductMeta(db, asin))?.totalReviews ?? null;
+  const allReviews = await getReviews(db, asin);
+  const complete = total !== null && allReviews.length >= total;
+  const stratify = filtered && !complete;
   return analyzeThemes(reviews, sentences, ordered, nonEnglish, { stratify });
 }
 

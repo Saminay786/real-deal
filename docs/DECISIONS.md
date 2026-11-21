@@ -48,6 +48,7 @@ cause for each of them.)
 | 32 | Partial "no change", flipped sentiment, after-shares as totals | Checks covered forbidden content and number placement, not scope, sentiment or which number. Facts gave unchanged themes meaningless before/after numbers. |
 | 33 | Next action hidden | Each phase added its own card and button, nothing owned "what should the user do now?", and testing was done by people who knew where everything was. |
 | 34 | "Done" hid Load on new filter pages | Next-step rules checked "analysed?" before "page unfinished?", and tests never covered going back to collecting after an analysis. |
+| 35 | Stratified a complete collection; one-level Δ shown as overall; unexplained p/q/Δ | The stratify rule ignored completeness. The single-stratum fallback treated "one of five qualifies" like "only one exists". The debug UI was written for developers. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -667,3 +668,35 @@ than polarity.
      analysis"** with **Re-run analysis** as the primary button. Otherwise "Done".
 - **Evidence.** A test reproduces the real case (themes done + partial view →
   load-view). Stale results lead to "rerun", unchanged results to "done".
+
+### 35. Complete collection: no need to stratify; a one-star-level Δ shown as overall; numbers unexplained
+- **Run.** Timex couple watch set: **105 of 105 written reviews (100%)** over 59
+  months (Nov 2016 to Oct 2026), collected through 10 filters. 163 sentences, 7
+  themes, silhouette 0.19, none significant. That is plausible for an unchanged
+  classic product.
+- **A. Stratified although nothing was missing.**
+  - *Why it happened.* The rule from #19 asked only "were star filters used?". Star
+    filters bias the mix only when the collection is a *partial* sample. With every
+    review collected, the union of all filters is the whole population, so the
+    star mix is the real one.
+  - *Why not caught.* Earlier products had partial collections, and no test
+    considered "filters used *and* complete".
+  - *Decision.* Stratify only if filtered views were used **and** collected <
+    Amazon's written-review total. Complete collection gets the plain, more
+    powerful test.
+- **B. "7% → 13%, Δ +21% [−1%, 36%]".**
+  - *Why.* With few reviews per star level, only one level (likely 5★) had ≥ 10 on
+    both sides, so `standardizedDiff` fell back to *that level's* Newcombe interval.
+    The asymmetric range gave it away. A single star level's change was shown as
+    the overall change.
+  - *Why not caught.* The single-stratum fallback was designed for "only one level
+    exists", not "only one of five qualifies".
+  - *Decision.* Use the star-adjusted Δ only when **≥ 2 star levels** qualify, and
+    otherwise the pooled Newcombe Δ that matches the before → after shares shown.
+- **C. "How do I read p, q and the triangle?"** (user).
+  - *Why.* The debug list showed statistical notation with no explanation. It was
+    built for us, not for shoppers.
+  - *Decision.* Add a "How to read this" box to the Themes card. Phase 6 will
+    redesign the display around plain language.
+- **Also.** The filter list now says "Every written review is collected. The
+  remaining filters would add nothing" instead of showing "10 of 17" as unfinished.

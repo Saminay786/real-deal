@@ -129,7 +129,11 @@ export function analyzeThemes(
     if (!cp.value) continue;
     const v = cp.value;
     const pooled = newcombe(v.kBefore, v.nBefore, v.kAfter, v.nAfter);
-    const effect = stratify ? (standardizedDiff(v.strata) ?? pooled) : pooled;
+    // A star-adjusted Δ needs ≥ 2 star levels with ≥ 10 reviews on each side; with
+    // one, it would be that single level's change shown as the overall one
+    // ("7% → 13%, Δ +21%", DECISIONS #35).
+    const adjusted = stratify ? standardizedDiff(v.strata) : null;
+    const effect = adjusted && adjusted.strataUsed >= 2 ? adjusted : pooled;
 
     // Exemplars: theme sentences from the reviews nearest the change, either side.
     const sorted = b.value.sorted as (Obs & { reviewId: string })[];

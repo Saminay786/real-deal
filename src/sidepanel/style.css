@@ -149,6 +149,22 @@ button.link.underline {
   color: var(--ok);
 }
 
+.legend {
+  margin: 6px 0 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #0969da 8%, transparent);
+}
+
+.legend ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.legend li {
+  margin-bottom: 4px;
+}
+
 details > summary {
   cursor: pointer;
   font-weight: 600;
