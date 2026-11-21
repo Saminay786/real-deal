@@ -8,3 +8,6 @@ models/*
 research/data/
 research/.venv/
 .ipynb_checkpoints/
+*.mp4
+*.mov
+*.webm

@@ -58,6 +58,7 @@ cause for each of them.)
 | 49 | (Prevented) bursts created by our own sampling | Star-filtered views hold only the most recent 100 of one star level, and pooled they form a dense recent all-positive cluster. Unit tests use single coherent streams. |
 | 51 | Committed with a test timing out | Large fixtures parse slowly under parallel load, and only the new tests were run before committing. |
 | 52 | Search panel stuck on "press F5"; no scores | The panel asked once when loading started, before the content script existed, and never retried. Search scores shared the rating-badge switch the user had turned off. |
+| 53 | Score badges invisible on search cards | The badge was put inside the title link, which Amazon clips to a few lines; Amazon also redraws cards after load. The fixtures are static HTML without Amazon's CSS or scripts. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -1073,3 +1074,19 @@ The Python implementation reproduces the extension's hand-computed test values (
   drawing is wrapped so it can't block the listener.
 - **Lesson.** For panel ↔ page features, the page should announce readiness, and "pull once on navigation" is
   never enough.
+
+### 53. Search score badges not visible; small text bugs
+- **What happened.** In the trial recording the panel scored 21 of 22 results, but no "Real Deal score" badge
+  could be seen under any card. The panel also said "1 have no ratings yet" and "Open: Open: Most recent · 5★".
+- **Why it happened.**
+  1. The badge was appended to the title `<h2>`'s parent, which is the title `<a>` link. Amazon clamps that
+     link to a few lines with `overflow: hidden`, so the badge on the next line was clipped away.
+  2. Amazon's scripts redraw the result cards after `document_idle`, so badges drawn once at load can vanish.
+  3. Text: the panel prefixed "Open: " to a label that NextStep already prefixes, and the count wasn't pluralised.
+- **Why it wasn't caught earlier.** Fixture tests check that a badge element exists in static HTML, which has
+  no Amazon CSS (no clipping) and no scripts (no redraw). "Exists in the DOM" isn't the same as "visible".
+- **Decision.** Insert the badge **after** the title block (`[data-cy="title-recipe"]`, falling back to the link),
+  never inside a link (tested). A debounced MutationObserver redraws missing badges, and badges are written
+  only when their text changes, so the observer can't loop. Fixed both text bugs.
+- **Lesson.** For anything injected into Amazon's DOM, test "not inside a clipped or interactive element", and
+  expect the page to redraw.

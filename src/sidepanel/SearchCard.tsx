@@ -35,7 +35,11 @@ export function SearchCard({
       <p>
         <strong>{scored.length}</strong> of {info.results.length} results scored
         {info.results.length - scored.length > 0 && (
-          <span class="muted"> · {info.results.length - scored.length} have no ratings yet</span>
+          <span class="muted">
+            {' '}
+            · {info.results.length - scored.length} {info.results.length - scored.length === 1 ? 'has' : 'have'} no
+            ratings yet
+          </span>
         )}
         {sponsored > 0 && <span class="muted"> · {sponsored} sponsored</span>}
       </p>

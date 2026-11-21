@@ -113,11 +113,21 @@ function runSearchPage(showBadges: boolean): void {
   // The side panel may have asked before this script existed: tell it we are ready.
   const ready: SearchReadyMessage = { type: 'rd:search-ready' };
   chrome.runtime.sendMessage(ready).catch(() => undefined);
-  try {
-    if (showBadges) renderScoreBadges(document);
-  } catch (e) {
-    debug('score badges failed', e);
-  }
+  if (!showBadges) return;
+  const draw = () => {
+    try {
+      renderScoreBadges(document);
+    } catch (e) {
+      debug('score badges failed', e);
+    }
+  };
+  draw();
+  // Amazon redraws result cards after load, removing our badges: redraw them (debounced).
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  new MutationObserver(() => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(draw, 300);
+  }).observe(document.body, { childList: true, subtree: true });
 }
 
 void (async () => {

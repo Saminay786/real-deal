@@ -54,6 +54,14 @@ describe('score badges and reordering (this page only)', () => {
     expect(badge?.textContent).toMatch(/^Real Deal score \d\.\d\d · few ratings/);
   });
 
+  it('places badges outside the line-clamped title link, so they are visible (DECISIONS #53)', () => {
+    const { doc } = loadFixture('search-a');
+    renderScoreBadges(doc);
+    const badges = [...doc.querySelectorAll(`.${SCORE_BADGE_CLASS}`)];
+    expect(badges.length).toBeGreaterThan(50);
+    for (const b of badges) expect(b.closest('a')).toBeNull();
+  });
+
   it('sorts cards by score (unscored last) and restores Amazon\'s order exactly', () => {
     const { doc } = loadFixture('search-a');
     const original = searchCards(doc).map((c) => c.getAttribute('data-asin'));

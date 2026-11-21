@@ -91,12 +91,19 @@ export function renderScoreBadges(doc: Document): void {
     if (!badge) {
       badge = doc.createElement('div');
       badge.className = SCORE_BADGE_CLASS;
-      const anchor = first(card, SEARCH.title);
-      (anchor?.parentElement ?? card).appendChild(badge);
+      // The h2 sits inside a line-clamped <a>; a badge placed there is clipped out of
+      // view (DECISIONS #53). Put it after the whole title block instead.
+      const title = first(card, SEARCH.title);
+      const block = title?.closest('[data-cy="title-recipe"]') ?? title?.closest('a') ?? title;
+      if (block && block.parentElement) block.insertAdjacentElement('afterend', badge);
+      else card.appendChild(badge);
     }
-    badge.textContent = s.value
+    const text = s.value
       ? `Real Deal score ${s.value.score.toFixed(2)}${s.dataSufficiency === 'low' ? ' · few ratings' : ''}${r.sponsored ? ' · sponsored' : ''}`
       : `Real Deal: no ratings yet${r.sponsored ? ' · sponsored' : ''}`;
+    // Write only on change, so the observer that re-adds badges cannot loop.
+    if (badge.textContent === text) return;
+    badge.textContent = text;
     badge.setAttribute('title', s.explanation);
     badge.setAttribute(
       'style',

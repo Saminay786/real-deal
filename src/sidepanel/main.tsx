@@ -274,7 +274,7 @@ function App() {
           reviews: summary?.usable ?? 0,
           onRun: runAnalysis,
           onMore: decision.more === 'open-next' ? openNext : null,
-          moreLabel: decision.more === 'open-next' && next ? `Open: ${viewLabel(next)}` : null,
+          moreLabel: decision.more === 'open-next' && next ? viewLabel(next) : null,
         };
       case 'analysing':
         return { kind: 'analysing', stage: themesState.kind === 'running' ? (STAGE[themesState.stage] ?? themesState.stage) : '' };
