@@ -68,7 +68,11 @@ export interface SentenceSplit {
  * extraction fix (DECISIONS #23) contain video-player config text such as
  * `P.when("A").execute(…{"isVse":false…})`.
  */
+/** Amazon UI text that ends up inside review bodies (video player messages). */
+const AMAZON_UI_TEXT = /^(the media could not be loaded|video player is loading|play video|this is a modal window)\b/i;
+
 export function isCodeLike(s: string): boolean {
+  if (AMAZON_UI_TEXT.test(s.trim())) return true;
   if (/[{}<>]|=>|\bfunction\s*\(|\bP\.when\b|\.execute\(|":\s*(true|false|null|"|\d)/.test(s)) return true;
   // URLs and URL fragments (sentence splitting cuts URLs at dots: "com/images/S/vse-vms-…").
   if (/https?:|www\.|\/[\w-]+\/|\.(?:mp4|m3u8|jpe?g|png|webp)\b|^(?:com|in|net)\//i.test(s)) return true;

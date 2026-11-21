@@ -242,8 +242,10 @@ Results must be identical across runs for the same input.
   values; show the arithmetic in test comments.
 - Update `docs/METHODOLOGY.md` whenever a stat method is added or changed.
 - **Log every difficulty, surprising observation and changed decision in
-  `docs/DECISIONS.md`** (difficulty / observation → decision → evidence), in the
-  same commit as the change. Keep its numbering going.
+  `docs/DECISIONS.md`**, in the same commit as the change, keeping its numbering
+  going. Each entry must state: what happened; **why it happened (root cause)**;
+  **why it wasn't caught earlier** (which test or check was missing); the
+  decision; the evidence. Add a row to the "Root causes at a glance" table.
 - Update the Status section below at the end of each phase.
 
 ## Commands

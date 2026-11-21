@@ -1,7 +1,48 @@
 # Decision log
 
 What went wrong or surprised us, what we observed, and how the plan changed.
-Newest at the bottom. Each entry: **Difficulty / observation → Decision → Evidence.**
+Newest at the bottom.
+
+Each entry records:
+1. **What happened**, the symptom we saw;
+2. **Why it happened**, the root cause;
+3. **Why it wasn't caught earlier**, the gap in our tests or checks;
+4. **Decision**, what we changed;
+5. **Evidence**, what shows the fix works.
+
+(Entries 1–27 were written before this format. The table below adds the root
+cause for each of them.)
+
+## Root causes at a glance
+
+| # | Issue | Why it happened (root cause) |
+|---|---|---|
+| 1 | Spec lost | The new `CLAUDE.md` was written in a chat and never saved to disk; only the phase plan was copied. |
+| 2 | Node missing | Fresh machine; the earlier project was built elsewhere. |
+| 3 | Fixtures mis-saved; saver failed | Manual Ctrl+S had no check on *which* tab was saved. Content scripts are not injected into tabs opened before an extension reload, so messages had no receiver. |
+| 4 | Name/pincode in fixtures | Amazon repeats personal data in `aria-label` attributes; blanking only `textContent` missed attributes. |
+| 5 | Fixture names wrong | Products were picked by eye; rating counts were not checked before saving. |
+| 6 | Wrong review URL | The spec assumed `/product-reviews/`; amazon.in now serves `/portal/customer-reviews/`. The assumption was not checked against a live page. |
+| 7 | Wrong ASIN from canonical link | Amazon points `rel=canonical` at the parent/another variant, not the page's own item. |
+| 8 | Other products' stars read | Product pages embed carousels with their own star ratings; a page-wide search picks them up. |
+| 9 | Rating ranges too low | A uniform Dirichlet prior adds 5 pseudo-ratings centred on 3★, but Amazon ratings are mostly 5★, so small products are dragged down. |
+| 10 | Two averages side by side | The posterior mean legitimately differs from Amazon's raw average. |
+| 11 | Tests fetched Amazon CSS | Saved pages contain `<link rel=stylesheet>`; happy-dom follows links. |
+| 12 | Only 100 reviews per view | Amazon caps every sort/filter combination at 100 reviews. |
+| 13 | Filtered totals | Amazon's "N customer reviews" shows the *filtered* count when a filter is on. |
+| 14 | Star filters fake trends | Filtered collection changes the star mix over time; themes correlate with stars, so the pooled share moves without any real change. |
+| 15 | Low power at 100 reviews | Binomial noise at n = 100 is large relative to realistic shifts. |
+| 16 | Hinglish reviews | amazon.in reviewers write romanised Hindi; the chosen model is English-only. |
+| 17 | Model too big for git | GitHub rejects files > 100 MB; the multilingual model is 118 MB. |
+| 18 | CDN downloads / duplicate runtime | transformers.js defaults to a CDN. The worker bundles the *asyncify* runtime, so separately copied *jsep* files were redundant. |
+| 19 | Stratified test blind spot | Within a star level, a theme tied to that level is constant, so a rise expressed as "more 1★ reviews" is attributed to star mix. |
+| 20 | Interval excludes 0 while p = 0.09 | The interval is computed after the scan *chose* the best month (post-selection); the permutation p-value accounts for the search, the interval does not. Short reviews also overlap in topic (low silhouette), and MiniLM embeds topic more than sentiment. |
+| 22 | Unreadable template; brand in labels; inconsistent numbers | Comma-joined labels inside a comma list. The brand name is frequent in one cluster only. Pooled shares and the star-adjusted Δ measure different things. |
+| 23 | Junk theme "false, vse, automated" | `textContent` includes `<script>` text; live video reviews embed a player-config script in the body. Fixtures had scripts stripped, so tests never saw it. |
+| 24 | Junk theme "video, images, com"; themes change between runs | The stored script also had URLs; splitting sentences at dots cut them into word-like fragments. Clustering short texts has no strongly preferred k, so small input changes flip k. |
+| 25–26 | Nano kErrorUnknown | An intermittent model-side failure in JSON-constrained decoding of a long free-text field. A shared session was ruled out (#25 did not fix it). |
+| 27 | 4-sentence summary | Nano does not reliably obey length instructions. |
+| 28 | AI labels on the wrong themes | See entry 28. |
 
 ---
 
@@ -384,3 +425,46 @@ than polarity.
   is rejected as before (tested).
 - **Open.** Label wording varies run to run. If that bothers users, cache labels
   per (product, theme keywords) so re-runs keep the same names.
+
+### 28. AI labels were attached to the wrong themes
+- **What happened.** On the pyjamas, the AI summary was *accepted* and 7 of 8
+  themes got AI names, but the names belonged to other themes. "Value for money"
+  sat on a theme whose examples were all about colour fading ("After one wash the
+  cloth colour faded…"), "Colour fading problem" on a theme about pants, and
+  "size, baby, newborn" got no name at all. The accepted summary repeated the
+  wrong names ("baby sized clothing … mostly positive") and also said "**Over**
+  100 reviews" when there were exactly 100. A new junk sentence also appeared as
+  an example: "The media could not be loaded."
+- **Why it happened.**
+  1. The label prompt numbered themes "Theme 0 … Theme 7" and asked for answers
+     by id. Nano answered with ids **1 … 8** (counting from one, as people do).
+     Each name landed on the next theme, and id 8 matched nothing, so 7 names
+     were applied.
+  2. "Over 100": the summary checks verified that each *number* came from the
+     facts, not the *words around it*. "Over", "nearly" and "more than" change a
+     number's meaning without changing the digits.
+  3. "The media could not be loaded." is a message Amazon's video player writes
+     *as page text* inside the review body. It is not in a `<script>`, so the #23
+     fix did not remove it.
+- **Why it wasn't caught earlier.** The label checks were *syntactic*: is the id
+  a number, a known theme, not repeated? An off-by-one answer passes all three.
+  The fake-Nano tests always answered with correct ids, so they never exercised
+  the way a real model gets numbering wrong. Nothing compared a label with its
+  theme's content. The user spotted it by reading the examples next to the names.
+- **Decision.**
+  1. Identify themes by their **keywords**, not numbers. The prompt lists each
+     group by its keywords, and the answer must copy them. A label is applied only
+     to the theme whose keywords match (case and quotes ignored), so a shifted or
+     renumbered answer can no longer attach a name to the wrong theme.
+  2. Reject summaries that put **over / more than / under / less than / fewer
+     than / nearly / almost / at least / up to** before a number, and tell the
+     model to write numbers exactly as given.
+  3. Treat Amazon video-player UI text ("The media could not be loaded.", "Video
+     player is loading", …) as non-review text.
+- **Evidence (tests).** A test reproduces the real failure: entries with ids 1
+  and 2 but keywords of themes 1 and 0 land on the correct themes. Unknown
+  keywords and duplicates are dropped. "Over 106 reviews" and "Nearly 33%" are
+  rejected, while "33% of 106 reviews" is accepted. "The media could not be
+  loaded." is filtered. Still to confirm on real Nano.
+- **Lesson.** Validate *meaning*, not just *format*: whenever the model refers
+  back to an item, make it quote something checkable about that item.

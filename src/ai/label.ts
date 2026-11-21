@@ -77,36 +77,44 @@ export const LABEL_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          id: { type: 'integer' },
+          keywords: { type: 'string' },
           label: { type: 'string', maxLength: MAX_LABEL_CHARS },
           sentiment: { type: 'string', enum: SENTIMENTS },
         },
-        required: ['id', 'label', 'sentiment'],
+        required: ['keywords', 'label', 'sentiment'],
       },
     },
   },
   required: ['themes'],
 } as const;
 
+/** The key a theme is identified by in the prompt and the answer: its keywords. */
+export const themeKey = (t: Theme): string => t.topTerms.join(', ');
+const normKey = (s: string) => s.toLowerCase().replace(/["“”']/g, '').split(/\s*,\s*/).map((w) => w.trim()).filter(Boolean).join(', ');
+
+/**
+ * Themes are identified by their keywords, not by number: Nano renumbered
+ * "Theme 0…7" as 1…8 and every label shifted onto the next theme (DECISIONS #28).
+ */
 export function buildLabelPrompt(themes: readonly Theme[]): string {
   const blocks = themes.map((t) =>
     [
-      `Theme ${t.id}`,
-      `  keywords: ${t.topTerms.join(', ')}`,
+      `- keywords: ${themeKey(t)}`,
       t.meanRating !== null ? `  average star rating of these reviews: ${t.meanRating.toFixed(1)}` : null,
       `  example sentences:`,
-      ...t.samples.slice(0, 8).map((s) => `  - ${s.slice(0, 200)}`),
+      ...t.samples.slice(0, 8).map((s) => `    * ${s.slice(0, 200)}`),
     ]
       .filter((l): l is string => l !== null)
       .join('\n'),
   );
   return [
     'These are groups of sentences from customer reviews of one product sold on amazon.in.',
-    'For each theme, write a short label (2 to 5 words, plain English, no quotes, at most 40 characters)',
-    'that says what the sentences are about, e.g. "Missing pieces in the box" or "Peels paint off walls".',
+    'Each group is identified by its keywords.',
+    'For each group, write a short label (2 to 5 words, plain English, no quotes, at most 40 characters)',
+    'that says what its example sentences are about, e.g. "Missing pieces in the box" or "Peels paint off walls".',
     'Also give the overall sentiment of its sentences: positive, negative, mixed (clearly both), or neutral.',
     'Describe the topic only. Do not judge whether reviews are genuine.',
-    'Answer with JSON listing every theme id exactly once.',
+    'Answer with JSON: one entry per group, copying its "keywords" exactly as written below.',
     '',
     ...blocks,
   ].join('\n');
@@ -119,8 +127,10 @@ export interface LabelResult {
 }
 
 /**
- * Validates the model's JSON. Unknown ids, duplicates, empty or over-long labels
- * and unknown sentiments are dropped; those themes keep their keyword labels.
+ * Validates the model's JSON. Each entry is matched to a theme by its copied
+ * keywords; entries whose keywords match no theme (or one already labelled),
+ * empty or over-long labels and unknown sentiments are dropped, and those themes
+ * keep their keyword labels.
  */
 export function parseLabels(raw: string, themes: readonly Theme[]): LabelResult[] {
   let data: unknown;
@@ -131,12 +141,14 @@ export function parseLabels(raw: string, themes: readonly Theme[]): LabelResult[
   }
   const list = (data as { themes?: unknown })?.themes;
   if (!Array.isArray(list)) return [];
-  const ids = new Set(themes.map((t) => t.id));
+  const byKey = new Map(themes.map((t) => [normKey(themeKey(t)), t.id]));
   const seen = new Set<number>();
   const out: LabelResult[] = [];
   for (const item of list) {
-    const { id, label, sentiment } = (item ?? {}) as { id?: unknown; label?: unknown; sentiment?: unknown };
-    if (typeof id !== 'number' || !ids.has(id) || seen.has(id)) continue;
+    const { keywords, label, sentiment } = (item ?? {}) as { keywords?: unknown; label?: unknown; sentiment?: unknown };
+    if (typeof keywords !== 'string') continue;
+    const id = byKey.get(normKey(keywords));
+    if (id === undefined || seen.has(id)) continue;
     if (typeof label !== 'string') continue;
     const clean = label.replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
     if (clean.length < 3 || clean.length > MAX_LABEL_CHARS) continue;
@@ -218,7 +230,7 @@ export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'pl
     'Rules: use only facts and numbers that appear in the JSON; do not add causes, advice or other numbers;',
     'a theme with "changed": false has NO clear change, so never describe it as rising or falling;',
     'if no theme changed, say there was no clear change and name the most mentioned themes;',
-    'neutral wording; never say reviews are fake.',
+    'neutral wording; never say reviews are fake; write numbers exactly as given, without "over", "about" or "nearly".',
     format === 'json' ? 'Answer as JSON {"summary": "..."}.' : 'Reply with only the summary sentences, nothing else.',
     '',
     JSON.stringify(input),
@@ -250,6 +262,9 @@ export function summaryProblem(text: string, input: NarrativeInput): string | nu
   const allowed = allowedNumbers(input);
   for (const n of t.match(/\d+(?:\.\d+)?/g) ?? []) if (!allowed.has(n)) return `number ${n} is not in the test results`;
   if (/\bfake\b/i.test(t)) return 'mentions "fake"';
+  // Numbers come from the facts; a qualifier in front of one changes its meaning ("over 100" when it is 100).
+  const qualified = t.match(/\b(over|more than|under|less than|fewer than|nearly|almost|at least|up to)\s+\d/i);
+  if (qualified) return `qualifies a number ("${qualified[0]}")`;
   const claim = t.match(/\b(rose|risen|increas\w*|grew|jump\w*|fell|drop\w*|declin\w*|decreas\w*)/i);
   if (!input.themes.some((x) => x.changed) && claim) return `says "${claim[0]}" although no theme changed significantly`;
   return null;

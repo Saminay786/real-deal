@@ -92,27 +92,40 @@ describe('nanoAvailability', () => {
 });
 
 describe('labels', () => {
-  it('prompt lists every theme with keywords, mean stars and samples', () => {
+  it('prompt identifies every theme by its keywords (no numbers), with mean stars and samples', () => {
     const p = buildLabelPrompt(THEMES);
-    expect(p).toContain('Theme 0');
-    expect(p).toContain('keywords: received, ordered, qty');
+    expect(p).toContain('- keywords: received, ordered, qty');
+    expect(p).toContain('- keywords: paint, wall, walls');
     expect(p).toContain('average star rating of these reviews: 2.1');
-    expect(p).toContain('- I received 9 pics instead of 10');
-    expect(p).toContain('Theme 1');
+    expect(p).toContain('* I received 9 pics instead of 10');
+    expect(p).not.toMatch(/Theme \d/);
   });
 
-  it('accepts valid labels and drops anything it cannot verify', () => {
+  it('matches labels to themes by copied keywords and drops anything it cannot verify', () => {
     const raw = JSON.stringify({
       themes: [
-        { id: 0, label: '“Missing pieces in the box”', sentiment: 'negative' },
-        { id: 0, label: 'Duplicate id', sentiment: 'negative' }, // duplicate → dropped
-        { id: 7, label: 'Unknown theme', sentiment: 'negative' }, // unknown id → dropped
-        { id: 1, label: 'x'.repeat(41), sentiment: 'negative' }, // too long → dropped
+        { keywords: 'Received, Ordered, "qty"', label: '“Missing pieces in the box”', sentiment: 'negative' }, // case/quotes ok
+        { keywords: 'received, ordered, qty', label: 'Duplicate', sentiment: 'negative' }, // already labelled → dropped
+        { keywords: 'size, baby, newborn', label: 'Unknown theme', sentiment: 'negative' }, // no such theme → dropped
+        { keywords: 'paint, wall, walls', label: 'x'.repeat(41), sentiment: 'negative' }, // too long → dropped
       ],
     });
     expect(parseLabels(raw, THEMES)).toEqual([{ themeId: 0, label: 'Missing pieces in the box', sentiment: 'negative' }]);
-    expect(parseLabels('{"themes":[{"id":1,"label":"Peels paint","sentiment":"angry"}]}', THEMES)).toEqual([]);
+    expect(parseLabels('{"themes":[{"keywords":"paint, wall, walls","label":"Peels paint","sentiment":"angry"}]}', THEMES)).toEqual([]);
     expect(parseLabels('not json', THEMES)).toEqual([]);
+  });
+
+  it('cannot shift labels onto the wrong theme (the 1-based numbering bug, DECISIONS #28)', () => {
+    // Real Nano answered "Theme 0…7" with ids 1…8. With keyword matching, an entry
+    // whose keywords belong to theme 1 can only label theme 1, whatever its position.
+    const raw = JSON.stringify({
+      themes: [
+        { id: 1, keywords: 'paint, wall, walls', label: 'Peels paint off walls', sentiment: 'negative' },
+        { id: 2, keywords: 'received, ordered, qty', label: 'Missing pieces in the box', sentiment: 'negative' },
+      ],
+    });
+    const byTheme = Object.fromEntries(parseLabels(raw, THEMES).map((l) => [l.themeId, l.label]));
+    expect(byTheme).toEqual({ 0: 'Missing pieces in the box', 1: 'Peels paint off walls' });
   });
 
   it('applies labels only where valid', () => {
@@ -159,6 +172,13 @@ describe('validateSummary', () => {
   it('rejects more than 3 sentences and the word "fake"', () => {
     expect(validateSummary('One. Two. Three. Four.', changed)).toBe(false);
     expect(validateSummary('Some reviews look fake.', changed)).toBe(false);
+  });
+
+  it('rejects qualifiers that change a number ("over 100" when it is exactly 100)', () => {
+    // Seen on real Nano: "Over 100 reviews were collected…" with exactly 100 reviews.
+    expect(validateSummary('Over 106 reviews mentioned the product.', changed)).toBe(false);
+    expect(validateSummary('Nearly 33% mention paint damage.', changed)).toBe(false);
+    expect(validateSummary('Paint damage was mentioned in 33% of 106 reviews.', changed)).toBe(true);
   });
 
   it('rejects a claimed rise or fall when no theme changed', () => {
@@ -230,8 +250,8 @@ describe('enrichWithNano', () => {
     const n = fakeNano([
       JSON.stringify({
         themes: [
-          { id: 0, label: 'Missing pieces in the box', sentiment: 'negative' },
-          { id: 1, label: 'Peels paint off walls', sentiment: 'negative' },
+          { keywords: 'received, ordered, qty', label: 'Missing pieces in the box', sentiment: 'negative' },
+          { keywords: 'paint, wall, walls', label: 'Peels paint off walls', sentiment: 'negative' },
         ],
       }),
       JSON.stringify({ summary: 'Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.' }),

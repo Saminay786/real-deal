@@ -10,6 +10,8 @@ describe('isCodeLike', () => {
     expect(isCodeLike('com/images/S/vse-vms-transcoding-artifact-us-east-1-prod/video/abc123')).toBe(true);
     expect(isCodeLike('https://m.media-amazon.com/images/I/81abc.jpg')).toBe(true);
     expect(isCodeLike('watch the video at www.example.com today')).toBe(true);
+    // Amazon's video-player message, seen as a theme example on real data
+    expect(isCodeLike('The media could not be loaded.')).toBe(true);
   });
 
   it('keeps prose that merely mentions videos, images or "and/or"', () => {
