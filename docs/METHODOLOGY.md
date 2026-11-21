@@ -289,6 +289,39 @@ A theme is flagged as significant if $q \le 0.10$.
 $m\,p/\text{rank}$ are $0.02, 0.02, 0.04, 0.04$. Taking the running minimum from
 the top gives $q = (0.02, 0.04, 0.04, 0.02)$ in input order, so all four are flagged.
 
+## Review bursts
+
+**Question.** Was there a period when far more reviews arrived than usual, and were those reviews unusually
+positive or unusually often unverified? Such a pattern is a *signal* worth reading about. It is not proof of fake
+reviews: launches, sales and Amazon's Vine programme produce bursts too.
+
+**Busiest window.** Sort the $n$ reviews by date over a span of $D$ days. Find the 14-day window with the most
+reviews, $X_{\max}$. At a steady pace a 14-day window expects $\lambda = 14\,n / D$ reviews.
+
+**Is it unusual?** Treat a window's count as Poisson($\lambda$). Because we searched about $D/14$ windows, use a
+Bonferroni-style correction:
+
+$$p = \min\!\Big(1,\; \frac{D}{14}\,P(X \ge X_{\max} \mid \lambda)\Big), \qquad \text{burst if } p < 0.001.$$
+
+$P(X \ge k \mid \lambda)$ is computed by summing Poisson terms in log space (log-gamma by Lanczos).
+
+**Extra signals** (only if the burst has ≥ 10 reviews):
+- *more positive*: mean stars in the burst ≥ 0.5 above the rest;
+- *more unverified*: share of unverified purchases in the burst ≥ 20 points above the rest.
+
+The verdict is **busy period** (burst only) or **suspicious signals** (burst plus at least one extra signal).
+The thresholds come from the research scan of 120 All_Beauty products: 65 had an extreme burst, 8 of those
+were also ≥ 0.5★ more positive, and 2 were also ≥ 20 points more unverified (DECISIONS #48).
+
+**Which reviews.** Star-filtered views hold the 100 *most recent* reviews of one star level, so on a popular
+product the 5★ view covers only recent weeks. Pooled with older reviews, that alone looks like a recent burst of
+glowing reviews. The check therefore uses every review only if all written reviews were collected; otherwise
+only reviews seen in views without a star filter.
+
+**Example (research data).** An eye cream had 109 reviews in 14 days from 28 Oct 2014 against a normal pace of
+2.8: $P(X \ge 109 \mid 2.8) \approx 2.4\times10^{-129}$. They averaged 4.81★ vs 4.27★ and 99% were unverified vs
+34%, so the verdict is *suspicious signals*.
+
 ## Rating credible interval
 
 **Question.** Amazon shows an average rating such as 4.4★. How sure can we be

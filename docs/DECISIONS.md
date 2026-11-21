@@ -55,6 +55,7 @@ cause for each of them.)
 | 40 | "Sometimes 3 bands, sometimes 2" | The ruler and the range band were both grey rounded strips; where the ruler stuck out it looked like extra bands. |
 | 41 | Repeated legends, messy list | Each clarification was added inside every theme block and reviewed for one theme, never for the whole list. |
 | 42 | Examples off-topic; % hid 3-vs-6 counts | Exemplars were picked by date proximity to the change, not typicality. The broad cluster was named from its centre only. Counts were not shown. |
+| 49 | (Prevented) bursts created by our own sampling | Star-filtered views hold only the most recent 100 of one star level, and pooled they form a dense recent all-positive cluster. Unit tests use single coherent streams. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -995,3 +996,22 @@ The Python implementation reproduces the extension's hand-computed test values (
   cream (B00N996X4G) with 109 reviews in 14 days from 28 Oct 2014 (normal pace 2.8), 4.81★ vs 4.27★, 99%
   unverified vs 34%, wording "I received this…", "after 2 days I already feel a difference". A launch can
   look similar (e.g. a Shakira perfume, Jul 2020: likely Amazon Vine). → See #49 for the extension check.
+
+### 49. Review-burst check in the extension, and the collection trap it must avoid
+- **Request (user).** Bring the research finding (eye-cream burst, #48) into the extension.
+- **Design.** `stats/burst.ts`: the busiest 14-day window, a Poisson tail corrected for the number of windows
+  searched (burst if p < 0.001), and extra signals "≥ 0.5★ more positive" and "≥ 20 points more unverified".
+  The verdict is *no unusual period*, *busy period* or *suspicious signals*. The panel always gives the
+  numbers and says a launch or Amazon Vine can look the same. Never "fake".
+- **The trap (why a naïve port would be wrong).** The extension's own collection creates bursts. A
+  "Most recent · 5★" view holds the 100 newest 5★ reviews, which on a popular product all come from the last few
+  weeks. Pooled with older reviews from other views, they form a dense, recent, all-positive cluster: a fake
+  "suspicious burst" made by our sampling, not by the seller. *Why it would not have been caught:* every unit test
+  uses a single coherent review stream, and the bias exists only in the union of views.
+- **Decision.** `collect/burstInput.ts` uses all reviews only when every written review was collected, and
+  otherwise only reviews seen in views without a star filter (the planner already stores which review came from
+  which view). With only star-filtered views, the card asks for an unfiltered view first.
+- **Evidence.** Poisson tails match scipy, including 2.4e-129 for the eye-cream case. Steady streams are
+  flagged in ≤ 1% of 200 runs. A synthetic eye-cream pattern gives "suspicious" with all three signals, and a
+  launch-like burst with normal ratings gives "busy". Selection tests cover complete, unfiltered-only and
+  star-only cases. 207 tests pass.

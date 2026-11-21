@@ -106,6 +106,11 @@ export async function recordView(
   return rec;
 }
 
+/** All view records (with their review IDs) for one product. */
+export function getViewRecords(db: Db, asin: string): Promise<StoredView[]> {
+  return db.getAllFromIndex('views', 'asin', asin);
+}
+
 /** Progress per view key for one product. */
 export async function getViewProgress(db: Db, asin: string): Promise<Map<string, ViewProgress>> {
   const rows = await db.getAllFromIndex('views', 'asin', asin);

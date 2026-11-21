@@ -82,6 +82,7 @@ src/
     intervals.ts                    # Wilson, Newcombe
     changepoint.ts                  # binomial change-point + permutation p-value
     fdr.ts                          # Benjamini–Hochberg
+    burst.ts                        # review bursts: Poisson window scan + signals
   ai/label.ts                       # Gemini Nano labels + narrative, with fallbacks
   sidepanel/                        # Preact UI, one component per card
   options/                          # options page (Phase 7)
@@ -186,6 +187,14 @@ Results must be identical across runs for the same input.
 - c-TF-IDF: `w(t, c) = tf(t, c) · log(1 + A / f(t))`, `tf` = term count in the
   concatenated sentences of class c, `f(t)` = count of t across all classes,
   `A` = mean words per class. English stop words removed. Label = top 3 terms.
+
+**B6. Review bursts (burst.ts)**
+- Busiest 14-day window vs steady pace λ = 14n/D; p = min(1, (D/14)·P(X ≥ max | λ));
+  burst if p < 0.001. Extra signals (burst ≥ 10 reviews): mean stars ≥ 0.5 higher,
+  unverified share ≥ 20 points higher. Verdict: none / busy / suspicious signals.
+- Uses all reviews only when collection is complete, else only reviews from views
+  without a star filter (`collect/burstInput.ts`). Never say "fake".
+- Needs ≥ 50 reviews over ≥ 90 days.
 
 **C1. Ranking score (rating.ts, v2)**
 - Shrunk mean `r̃ = (C·m + N·r̄) / (C + N)`, `SE = σ / √(C + N)`,

@@ -1,6 +1,10 @@
 import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import { getProductMeta, getReviews, getViewProgress, openStore, type Db } from '../collect/store';
+import { getProductMeta, getReviews, getViewProgress, getViewRecords, openStore, type Db } from '../collect/store';
+import { burstReviews, type BurstSelection } from '../collect/burstInput';
+import { detectBurst, type Burst } from '../stats/burst';
+import type { StatResult } from '../types';
+import { BurstCard } from './BurstCard';
 import { summarizeCollection, type CollectionSummary } from '../collect/summary';
 import {
   PLAN,
@@ -70,6 +74,9 @@ const db = () => (dbPromise ??= openStore());
 function App() {
   const [tab, setTab] = useState<TabInfo>(NO_TAB);
   const [summary, setSummary] = useState<CollectionSummary | null>(null);
+  const [burst, setBurst] = useState<{ asin: string; basis: BurstSelection['basis']; result: StatResult<Burst> } | null>(
+    null,
+  );
   const [progress, setProgress] = useState<Map<string, ViewProgress>>(new Map());
   const [load, setLoad] = useState<LoadState>(IDLE);
   const [themes, setThemes] = useState<{ asin: string; state: ThemesState } | null>(null);
@@ -116,13 +123,16 @@ function App() {
       return;
     }
     const d = await db();
-    const [reviews, meta, views] = await Promise.all([
+    const [reviews, meta, views, viewRecords] = await Promise.all([
       getReviews(d, info.asin),
       getProductMeta(d, info.asin),
       getViewProgress(d, info.asin),
+      getViewRecords(d, info.asin),
     ]);
     setSummary(summarizeCollection(reviews, meta?.totalReviews ?? null));
     setProgress(views);
+    const sel = burstReviews(reviews, viewRecords, meta?.totalReviews ?? null);
+    setBurst({ asin: info.asin, basis: sel.basis, result: detectBurst(sel.reviews) });
   }, []);
 
   useEffect(() => {
@@ -260,6 +270,7 @@ function App() {
               onRun={runAnalysis}
             />
           )}
+          {burst && burst.asin === tab.asin && <BurstCard result={burst.result} basis={burst.basis} />}
           <CollectionCard s={summary} onReviewsPage={tab.type === 'reviews'} />
           <PlannerCard current={current} progress={progress} load={load} onOpen={open} allCollected={allCollected} />
         </>
