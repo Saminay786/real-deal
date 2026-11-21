@@ -900,3 +900,14 @@ than polarity.
 - **Deferred to research:** splitting merged clusters (#43), label stability (#24),
   a "probably stable" verdict for narrow ranges (needs an honest, post-selection-aware
   interval first).
+
+### 45. Phase 6 verified on the Timex; split label cramped
+- **Verified.** Monthly chart, averages, split marker, change box, counts, headline
+  ("No theme changed clearly over this period") and AI summary render on real data.
+  The Chain/lock chart shows the pattern from #43 visually: near 0% for years, then
+  a rise after Mar '25, with only ~3 extra reviews, so it correctly stays "Could just
+  be luck".
+- **Glitch.** The split-month label sat at the very top edge, partly hidden under the
+  verdict chip. *Why:* only 5 px of top margin, designed without the chip above it.
+- **Decision.** 8 px more top margin, the label reads "split May '23" and is kept
+  inside the chart's width.

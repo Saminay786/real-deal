@@ -46,10 +46,11 @@ const time = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
 export function Sparkline({ s, series }: { s: ShiftResult; series: ThemeSeries }) {
   const b = series.buckets;
   if (b.length === 0) return null;
-  const H = 62;
+  // Top margin leaves room for the split-month label below the verdict chip (DECISIONS #45).
+  const H = 70;
   const left = 30;
   const right = W - 6;
-  const topY = 10;
+  const topY = 18;
   const baseY = H - 14;
   const t0 = time(b[0]?.start ?? s.changeAt);
   const t1 = time(b[b.length - 1]?.end ?? s.changeAt);
@@ -88,7 +89,14 @@ export function Sparkline({ s, series }: { s: ShiftResult; series: ThemeSeries }
       <text x={right - 2} y={y(s.after.share) - 3} class="tc-val sp-avg-label" text-anchor="end">{after}%</text>
       {/* split month */}
       <line x1={xc} x2={xc} y1={topY - 4} y2={baseY} class="tc-zero" />
-      <text x={xc} y={topY - 5} class="tc-tick" text-anchor="middle">{shortMonth(s.changeAt)}</text>
+      <text
+        x={Math.min(right - 14, Math.max(left + 14, xc))}
+        y={topY - 7}
+        class="tc-tick"
+        text-anchor="middle"
+      >
+        split {shortMonth(s.changeAt)}
+      </text>
       <text x={left} y={H - 2} class="tc-tick">{shortMonth(b[0]?.start ?? '')}</text>
       <text x={right} y={H - 2} class="tc-tick" text-anchor="end">{shortMonth(b[b.length - 1]?.end ?? '')}</text>
     </svg>
