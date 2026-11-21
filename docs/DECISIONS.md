@@ -45,6 +45,7 @@ cause for each of them.)
 | 28 | AI labels on the wrong themes; "Over 100" | Themes were numbered from 0 and Nano answered from 1, while the checks only tested that ids were *valid*, not *right*. Number checks looked at digits, not qualifiers. |
 | 30 | Star-adjusted Δ −32% [−38%, −26%] for a 7-point change | Star-filtered views cover different time spans, leaving strata with 1–3 reviews on one side. Standardisation gave them full weight, and Wald variance is 0 at p̂ = 0 or 1. Unit tests only used balanced strata. |
 | 31 | Finding still missing; "13% of the time" | The no-change check ran before trimming, which then removed Nano's 4th-sentence finding. Number checks tested existence, not meaning or subject. |
+| 32 | Partial "no change", flipped sentiment, after-shares as totals | Checks covered forbidden content and number placement, not scope, sentiment or which number. Facts gave unchanged themes meaningless before/after numbers. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -578,3 +579,42 @@ than polarity.
   the wrong theme is rejected.
 - *Trade-off.* Paraphrased labels ("battery life" for "Battery performance") are
   now rejected and fall back to the template. Strict but safe.
+
+### 32. Accepted AI summary still misleading in three ways
+- **What happened (boAt).** The AI summary passed all checks: "…the value for money
+  theme was mentioned in 15% of reviews, while issues with sound quality were
+  mentioned in 28% of reviews. The reported battery problems were mentioned in 10%
+  of reviews. There was no clear change in the topics of product defects, earbud
+  issues, and mixed feedback…"
+  1. A *partial* no-change statement ("no clear change in X, Y and Z") implies the
+     other themes did change. None did.
+  2. "Issues with sound quality" for a theme the AI itself labelled *positive*
+     ("Sound quality is so good").
+  3. 28% and 10% are *after-change* shares of unchanged themes, presented as
+     whole-period shares (whole-period figures were ~29% and ~13%).
+- **Why it happened.** The checks covered *forbidden content* (unknown numbers,
+  "rose/fell", "fake") and number *placement*, but not (1) whether the no-change
+  statement covers *all* themes, (2) whether wording matches a theme's sentiment,
+  or (3) *which* of a theme's numbers is used. The facts JSON gave unchanged themes
+  three numbers, two of them meaningless.
+- **Why it wasn't caught earlier.** The previous fix (#31) made the rule "a
+  percentage must belong to the theme in its sentence", and an after-share does
+  belong to the theme. Partial statements and flipped sentiment had never appeared
+  in test summaries.
+- **Decision.**
+  1. The "no change" phrase must be global ("No theme changed…", "none of the
+     themes…", "no change in any/all…", "all themes stayed…"). Otherwise the
+     factual sentence is prepended.
+  2. Within ~30 characters of a positive theme's label, "issue(s), problem(s),
+     complaint, concern, defect, negative, disappoint…" rejects the summary, and
+     "praise, liked, loved, positive, satisfied…" near a negative theme does too.
+     The label's own words are excluded.
+  3. The facts JSON carries before/after/from **only for themes that changed**.
+     Unchanged themes have just their whole-period share.
+- **Evidence (tests).** The partial statement gets the finding prepended; "Issues
+  with <positive theme>" is rejected while the bare label passes; the narrative
+  input for an unchanged theme has only `mentionedPct`.
+- **Pattern across #28–#32.** Each fix closed one way a fluent model can mislead
+  while staying "within the facts". Rule-based validation catches known failure
+  shapes, not meaning in general. The template summary remains the safe default,
+  and the panel always says which one is shown.

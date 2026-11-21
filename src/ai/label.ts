@@ -180,12 +180,17 @@ export interface NarrativeInput {
   themes: {
     label: string;
     sentiment?: Sentiment;
-    /** % of reviews mentioning the theme overall. */
+    /** % of reviews mentioning the theme over the whole period. */
     mentionedPct: number;
     changed: boolean;
-    beforePct: number;
-    afterPct: number;
-    from: string;
+    /**
+     * Only for themes that changed. For unchanged themes the before/after split is
+     * meaningless, and Nano quoted after-shares as if they covered the whole
+     * period (DECISIONS #32).
+     */
+    beforePct?: number;
+    afterPct?: number;
+    from?: string;
   }[];
 }
 
@@ -210,9 +215,9 @@ export function buildNarrativeInput(a: ThemeAnalysis, themes: readonly Theme[] =
         ...(t?.sentiment ? { sentiment: t.sentiment } : {}),
         mentionedPct: pct(mentioned(s.themeId)),
         changed: s.significant,
-        beforePct: pct(s.before.share),
-        afterPct: pct(s.after.share),
-        from: monthLabel(s.changeAt),
+        ...(s.significant
+          ? { beforePct: pct(s.before.share), afterPct: pct(s.after.share), from: monthLabel(s.changeAt) }
+          : {}),
       };
     }),
   };
@@ -229,7 +234,8 @@ export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'pl
     'Write a summary for a shopper of at most 3 short sentences, based ONLY on this JSON about one product\'s reviews.',
     'Rules: use only facts and numbers that appear in the JSON; do not add causes, advice or other numbers;',
     'a theme with "changed": false has NO clear change, so never describe it as rising or falling;',
-    'if no theme changed, say there was no clear change and name the most mentioned themes;',
+    'if no theme changed, start with "No theme changed clearly" and then name the most mentioned themes;',
+    "keep each theme's sentiment: do not call a positive theme an issue or a negative theme praise;",
     'neutral wording; never say reviews are fake; write numbers exactly as given, without "over", "about" or "nearly";',
     'percentages are shares of reviews that mention a theme: write them as "N% of reviews" in the same sentence as that theme\'s label, never as "N% of the time" or as a share of positive or negative opinions.',
     format === 'json' ? 'Answer as JSON {"summary": "..."}.' : 'Reply with only the summary sentences, nothing else.',
@@ -238,13 +244,31 @@ export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'pl
   ].join('\n');
 }
 
+const themeNumbers = (t: NarrativeInput['themes'][number]): number[] =>
+  [t.mentionedPct, t.beforePct, t.afterPct].filter((n): n is number => typeof n === 'number');
+
+/** Words that contradict a theme's sentiment when used right next to its label. */
+const NEGATIVE_WORDS = /\b(issues?|problems?|complain\w*|concerns?|defects?|negative\w*|disappoint\w*)\b/i;
+const POSITIVE_WORDS = /\b(prais\w*|liked|loved|positive\w*|appreciat\w*|satisf\w*)\b/i;
+
+/** Text within ~30 characters around each occurrence of `label`, with the label itself removed. */
+function aroundLabel(sentence: string, label: string): string[] {
+  const out: string[] = [];
+  const low = sentence.toLowerCase();
+  const l = label.toLowerCase();
+  for (let i = low.indexOf(l); i >= 0; i = low.indexOf(l, i + 1)) {
+    out.push(`${low.slice(Math.max(0, i - 30), i)} ${low.slice(i + l.length, i + l.length + 30)}`);
+  }
+  return out;
+}
+
 /** All numbers the summary is allowed to contain (as written in the input). */
 export function allowedNumbers(input: NarrativeInput): Set<string> {
   const s = new Set<string>([String(input.reviews), '3']);
   for (const m of input.period.match(/\d+/g) ?? []) s.add(m);
   for (const t of input.themes) {
-    for (const n of [t.mentionedPct, t.beforePct, t.afterPct]) s.add(String(n));
-    for (const m of t.from.match(/\d+/g) ?? []) s.add(m);
+    for (const n of themeNumbers(t)) s.add(String(n));
+    for (const m of t.from?.match(/\d+/g) ?? []) s.add(m);
   }
   return s;
 }
@@ -280,11 +304,16 @@ export function summaryProblem(text: string, input: NarrativeInput): string | nu
         return `${n}% is not written as "${n}% of reviews"`;
       }
       const owner = input.themes.find(
-        (th) =>
-          sentence.toLowerCase().includes(th.label.toLowerCase()) &&
-          [th.mentionedPct, th.beforePct, th.afterPct].includes(n),
+        (th) => sentence.toLowerCase().includes(th.label.toLowerCase()) && themeNumbers(th).includes(n),
       );
       if (!owner) return `${n}% is not next to the theme it belongs to`;
+    }
+    // Sentiment must not be flipped: "issues with sound quality" for a positive theme.
+    for (const th of input.themes) {
+      for (const near of aroundLabel(sentence, th.label)) {
+        if (th.sentiment === 'positive' && NEGATIVE_WORDS.test(near)) return `calls positive theme "${th.label}" negative`;
+        if (th.sentiment === 'negative' && POSITIVE_WORDS.test(near)) return `calls negative theme "${th.label}" positive`;
+      }
     }
   }
   return null;
@@ -320,8 +349,13 @@ export function parsePlainSummary(raw: string): string | null {
   return t.length > 0 ? t : null;
 }
 
-/** Phrases that state "no change" in a summary. */
-export const SAYS_NO_CHANGE = /\bno (clear|significant|notable|real)?\s*change|\bno theme changed|\bdid not change|\bunchanged\b|\bstable\b|\bremained (steady|similar|the same)/i;
+/**
+ * Phrases that state "no change" for ALL themes. A partial statement ("no clear
+ * change in X and Y") implies the others did change, so it does not count
+ * (DECISIONS #32).
+ */
+export const SAYS_NO_CHANGE =
+  /\bno (?:theme|topic)s?\b[^.]*\bchang|\bnone of the (?:themes|topics)\b[^.]*\bchang|\bno (?:clear |significant |notable )?changes? (?:in|across|for) (?:any|all)\b|\bno (?:clear |significant )?changes? (?:was|were) (?:found|seen|detected)\b|\b(?:all|every) (?:themes?|topics?)\b[^.]*\b(?:stayed|remained|stable|unchanged)/i;
 
 export function noChangeSentence(input: NarrativeInput): string {
   return `No theme changed clearly from ${input.period} (${input.reviews} reviews).`;
@@ -333,8 +367,10 @@ export function templateSummary(input: NarrativeInput): string {
   const parts: string[] = [];
   if (changed.length > 0) {
     for (const t of changed.slice(0, 2)) {
-      const dir = t.afterPct > t.beforePct ? 'rose' : 'fell';
-      parts.push(`Mentions of "${t.label}" ${dir} from ${t.beforePct}% to ${t.afterPct}% of reviews from ${t.from}.`);
+      const before = t.beforePct ?? 0;
+      const after = t.afterPct ?? 0;
+      const dir = after > before ? 'rose' : 'fell';
+      parts.push(`Mentions of "${t.label}" ${dir} from ${before}% to ${after}% of reviews from ${t.from ?? '?'}.`);
     }
   } else {
     parts.push(noChangeSentence(input));

@@ -145,7 +145,8 @@ describe('summary facts', () => {
       period: 'Jul 2026 to Nov 2026',
       themes: [
         { label: 'received, ordered, qty', mentionedPct: 10, changed: true, beforePct: 5, afterPct: 17, from: 'Oct 2026' },
-        { label: 'paint, wall, walls', mentionedPct: 33, changed: false, beforePct: 33, afterPct: 33, from: 'Oct 2026' },
+        // Unchanged theme: only its whole-period share (before/after would be misread, DECISIONS #32)
+        { label: 'paint, wall, walls', mentionedPct: 33, changed: false },
       ],
     });
   });
@@ -190,6 +191,16 @@ describe('validateSummary', () => {
     // Right wording, wrong theme: 10% belongs to received/ordered/qty, not paint.
     expect(summaryProblem('Paint, wall, walls appeared in 10% of reviews.', changed)).toBe('10% is not next to the theme it belongs to');
     expect(summaryProblem('Paint, wall, walls appeared in 33% of reviews.', changed)).toBeNull();
+  });
+
+  it('rejects flipped sentiment next to a label (real Nano, DECISIONS #32)', () => {
+    // Real Nano: "issues with sound quality" for a positive theme.
+    const pos = { ...none, themes: none.themes.map((t, i) => (i === 1 ? { ...t, sentiment: 'positive' as const } : t)) };
+    expect(summaryProblem('No theme changed clearly. Issues with paint, wall, walls appeared in 33% of reviews.', pos)).toBe(
+      'calls positive theme "paint, wall, walls" negative',
+    );
+    // Labels that contain such words themselves are fine.
+    expect(summaryProblem('No theme changed clearly. Paint, wall, walls appeared in 33% of reviews.', pos)).toBeNull();
   });
 
   it('rejects a claimed rise or fall when no theme changed', () => {
@@ -340,6 +351,14 @@ describe('enrichWithNano', () => {
         'There were 106 reviews for this product from Jul 2026 to Nov 2026. Paint damage was frequently mentioned.',
     );
     expect(r.note).toBe('first sentence added from the test results, trimmed to 3 sentences');
+  });
+
+  it('treats a partial "no clear change in X" as not stating the finding (real Nano, DECISIONS #32)', async () => {
+    // Implies the other themes changed → the factual sentence is prepended.
+    const ai = 'There was no clear change in paint, wall, walls. Received, ordered, qty appeared in 10% of reviews.';
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: ai })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summary.startsWith('No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews).')).toBe(true);
   });
 
   it('checks for "no clear change" after trimming, not before (real Nano, DECISIONS #31)', async () => {
