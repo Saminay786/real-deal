@@ -15,33 +15,37 @@ export interface StepInput {
   nextViewLabel: string | null;
   loadRunning: boolean;
   themes: 'idle' | 'running' | 'done' | 'error';
+  /** Reviews collected since the last analysis (0 if none or never analysed). */
+  newSinceAnalysis: number;
 }
 
 export type Decision =
   | { kind: 'no-product' }
   | { kind: 'open-reviews' }
-  | { kind: 'load-view' }
+  | { kind: 'load-view'; canAnalyse: boolean }
   | { kind: 'loading' }
   | { kind: 'open-next' }
-  | { kind: 'find-themes'; more: 'load-here' | 'open-next' | null }
+  | { kind: 'find-themes'; more: 'open-next' | null }
   | { kind: 'analysing' }
+  | { kind: 'rerun'; newReviews: number }
   | { kind: 'done' };
 
+/**
+ * Order matters (DECISIONS #34): an unfinished review page always offers
+ * "Load", even after an analysis, because the user opened it to collect.
+ */
 export function decideStep(s: StepInput): Decision {
   if (!s.hasProduct) return { kind: 'no-product' };
   if (s.themes === 'running') return { kind: 'analysing' };
   if (s.loadRunning) return { kind: 'loading' };
-  if (s.themes === 'done') return { kind: 'done' };
   const viewUnfinished = s.currentView === 'todo' || s.currentView === 'partial';
-
-  if (s.minimumMet) {
-    // Enough to analyse; collecting more is optional.
-    const more = s.onReviewsPage && viewUnfinished ? 'load-here' : s.nextViewLabel ? 'open-next' : null;
-    return { kind: 'find-themes', more };
+  if (s.onReviewsPage && viewUnfinished) return { kind: 'load-view', canAnalyse: s.minimumMet };
+  if (s.themes === 'done') {
+    return s.newSinceAnalysis > 0 ? { kind: 'rerun', newReviews: s.newSinceAnalysis } : { kind: 'done' };
   }
+  if (s.minimumMet) return { kind: 'find-themes', more: s.nextViewLabel ? 'open-next' : null };
   if (!s.onReviewsPage) return { kind: 'open-reviews' };
-  if (viewUnfinished) return { kind: 'load-view' };
   if (s.nextViewLabel) return { kind: 'open-next' };
-  // Nothing left to collect and still below the minimum: analysis will say so.
+  // Nothing left to collect and still below the minimum: the analysis will say so.
   return { kind: 'find-themes', more: null };
 }

@@ -4,7 +4,8 @@
 export type Step =
   | { kind: 'no-product' }
   | { kind: 'open-reviews'; reviewsNeeded: number; onOpen: () => void }
-  | { kind: 'load-view'; viewLabel: string; onLoad: () => void }
+  | { kind: 'load-view'; viewLabel: string; onLoad: () => void; onAnalyse: (() => void) | null }
+  | { kind: 'rerun'; newReviews: number; onRerun: () => void }
   | { kind: 'loading'; loaded: number; onStop: () => void }
   | { kind: 'open-next'; nextLabel: string; reviewsNeeded: number; monthsNeeded: number; onOpen: () => void }
   | { kind: 'find-themes'; reviews: number; onRun: () => void; onMore: (() => void) | null; moreLabel: string | null }
@@ -19,6 +20,7 @@ const STEP_NO: Record<Step['kind'], number> = {
   'open-next': 1,
   'find-themes': 2,
   analysing: 2,
+  rerun: 2,
   done: 3,
 };
 
@@ -60,6 +62,25 @@ export function NextStep({ step, error }: { step: Step; error: string | null }) 
           </p>
           <button type="button" class="primary big" onClick={step.onLoad}>
             Load reviews on this page
+          </button>
+          {step.onAnalyse && (
+            <p class="small muted">
+              You already have enough reviews.{' '}
+              <button type="button" class="link underline" onClick={step.onAnalyse}>
+                Find themes now
+              </button>
+            </p>
+          )}
+        </>
+      )}
+
+      {step.kind === 'rerun' && (
+        <>
+          <p class="hint">
+            {step.newReviews} new review{step.newReviews === 1 ? '' : 's'} since your last analysis.
+          </p>
+          <button type="button" class="primary big" onClick={step.onRerun}>
+            Re-run analysis
           </button>
         </>
       )}

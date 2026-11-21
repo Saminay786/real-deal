@@ -184,6 +184,11 @@ function App() {
     nextViewLabel: next ? viewLabel(next) : null,
     loadRunning: load.running,
     themes: themesState.kind,
+    // Reviews counted by the last analysis = analysed + excluded non-English.
+    newSinceAnalysis:
+      themesState.kind === 'done' && summary
+        ? Math.max(0, summary.usable - (themesState.analysis.analysedReviews + themesState.analysis.nonEnglishReviews))
+        : 0,
   });
   const openNext = () => open(next ?? PLAN[0] ?? { sort: 'recent', star: 'all', reviewer: 'all' });
   const STAGE: Record<string, string> = {
@@ -198,7 +203,14 @@ function App() {
       case 'open-reviews':
         return { kind: 'open-reviews', reviewsNeeded: summary?.reviewsNeeded ?? 100, onOpen: openNext };
       case 'load-view':
-        return { kind: 'load-view', viewLabel: current ? viewLabel(current) : '', onLoad: () => void send('rd:load-view') };
+        return {
+          kind: 'load-view',
+          viewLabel: current ? viewLabel(current) : '',
+          onLoad: () => void send('rd:load-view'),
+          onAnalyse: decision.canAnalyse ? runAnalysis : null,
+        };
+      case 'rerun':
+        return { kind: 'rerun', newReviews: decision.newReviews, onRerun: runAnalysis };
       case 'loading':
         return { kind: 'loading', loaded: load.loaded, onStop: () => void send('rd:stop-load') };
       case 'open-next':
@@ -214,13 +226,8 @@ function App() {
           kind: 'find-themes',
           reviews: summary?.usable ?? 0,
           onRun: runAnalysis,
-          onMore: decision.more === 'load-here' ? () => void send('rd:load-view') : decision.more === 'open-next' ? openNext : null,
-          moreLabel:
-            decision.more === 'load-here'
-              ? 'Load reviews on this page'
-              : decision.more === 'open-next' && next
-                ? `Open: ${viewLabel(next)}`
-                : null,
+          onMore: decision.more === 'open-next' ? openNext : null,
+          moreLabel: decision.more === 'open-next' && next ? `Open: ${viewLabel(next)}` : null,
         };
       case 'analysing':
         return { kind: 'analysing', stage: themesState.kind === 'running' ? (STAGE[themesState.stage] ?? themesState.stage) : '' };

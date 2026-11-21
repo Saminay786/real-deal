@@ -47,6 +47,7 @@ cause for each of them.)
 | 31 | Finding still missing; "13% of the time" | The no-change check ran before trimming, which then removed Nano's 4th-sentence finding. Number checks tested existence, not meaning or subject. |
 | 32 | Partial "no change", flipped sentiment, after-shares as totals | Checks covered forbidden content and number placement, not scope, sentiment or which number. Facts gave unchanged themes meaningless before/after numbers. |
 | 33 | Next action hidden | Each phase added its own card and button, nothing owned "what should the user do now?", and testing was done by people who knew where everything was. |
+| 34 | "Done" hid Load on new filter pages | Next-step rules checked "analysed?" before "page unfinished?", and tests never covered going back to collecting after an analysis. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -645,3 +646,24 @@ than polarity.
      duplicate buttons and the long tip are removed.
 - **Evidence.** 7 tests cover every branch of `decideStep`. Still to confirm in
   Chrome with the user.
+
+### 34. After an analysis, a new filter page showed "Done" with no Load button
+- **What happened.** On a Timex watch, after running the analysis, the user switched
+  to "Top reviews · all stars" (10 loaded). The bar said "Done. Results are below ↓"
+  with only "Re-run analysis", so there was no way to load that page.
+- **Why it happened.** `decideStep` checked "analysis done?" *before* "is this
+  review page unfinished?". Once an analysis existed, every later page short-
+  circuited to "Done". Also, nothing compared the review count at analysis time
+  with the current one, so results silently went stale as more were collected.
+- **Why it wasn't caught earlier.** The #33 tests covered each state on its own path
+  (collect → analyse → done) but never "done, then go back to collecting". That is
+  the normal way people use it: analyse, then collect more.
+- **Decision.**
+  1. An unfinished review page always offers **"Load reviews on this page"** first,
+     even after an analysis. If the minimum is already met, a "Find themes now" link
+     sits under it.
+  2. After an analysis, if reviews were added since (current usable count minus the
+     analysed + excluded count), the bar shows **"N new reviews since your last
+     analysis"** with **Re-run analysis** as the primary button. Otherwise "Done".
+- **Evidence.** A test reproduces the real case (themes done + partial view →
+  load-view). Stale results lead to "rerun", unchanged results to "done".

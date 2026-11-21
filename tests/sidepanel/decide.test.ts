@@ -12,7 +12,9 @@ const base: StepInput = {
   nextViewLabel: 'Most recent · 5★',
   loadRunning: false,
   themes: 'idle',
+  newSinceAnalysis: 0,
 };
+const met = { ...base, minimumMet: true, reviewsNeeded: 0, monthsNeeded: 0, usableReviews: 120 };
 
 describe('decideStep', () => {
   it('asks to open a product when none is open', () => {
@@ -24,8 +26,8 @@ describe('decideStep', () => {
   });
 
   it('on an unfinished review page: load it; while loading: show progress', () => {
-    expect(decideStep(base)).toEqual({ kind: 'load-view' });
-    expect(decideStep({ ...base, currentView: 'todo' })).toEqual({ kind: 'load-view' });
+    expect(decideStep(base)).toEqual({ kind: 'load-view', canAnalyse: false });
+    expect(decideStep({ ...base, currentView: 'todo' })).toEqual({ kind: 'load-view', canAnalyse: false });
     expect(decideStep({ ...base, loadRunning: true })).toEqual({ kind: 'loading' });
   });
 
@@ -34,17 +36,29 @@ describe('decideStep', () => {
     expect(decideStep({ ...base, currentView: 'complete' })).toEqual({ kind: 'open-next' });
   });
 
-  it('once the minimum is met: find themes, with collecting more as an option', () => {
-    const met = { ...base, minimumMet: true, reviewsNeeded: 0, monthsNeeded: 0 };
-    expect(decideStep(met)).toEqual({ kind: 'find-themes', more: 'load-here' });
+  it('once the minimum is met: find themes (or load this page first, with analysing offered)', () => {
+    expect(decideStep(met)).toEqual({ kind: 'load-view', canAnalyse: true });
     expect(decideStep({ ...met, currentView: 'capped' })).toEqual({ kind: 'find-themes', more: 'open-next' });
     expect(decideStep({ ...met, currentView: 'capped', nextViewLabel: null })).toEqual({ kind: 'find-themes', more: null });
     expect(decideStep({ ...met, onReviewsPage: false, currentView: null })).toEqual({ kind: 'find-themes', more: 'open-next' });
   });
 
-  it('while analysing, and when done', () => {
+  it('after an analysis, opening a new filter still offers Load (bug seen on real use, DECISIONS #34)', () => {
+    // User analysed, then switched Amazon's filter to "Top reviews": the bar said "Done" with no Load button.
+    expect(decideStep({ ...met, themes: 'done', currentView: 'partial' })).toEqual({ kind: 'load-view', canAnalyse: true });
+    expect(decideStep({ ...met, themes: 'done', currentView: 'todo' })).toEqual({ kind: 'load-view', canAnalyse: true });
+  });
+
+  it('after an analysis: re-run when new reviews arrived, otherwise done', () => {
+    expect(decideStep({ ...met, themes: 'done', currentView: 'capped', newSinceAnalysis: 40 })).toEqual({
+      kind: 'rerun',
+      newReviews: 40,
+    });
+    expect(decideStep({ ...met, themes: 'done', currentView: 'capped' })).toEqual({ kind: 'done' });
+  });
+
+  it('while analysing', () => {
     expect(decideStep({ ...base, themes: 'running' })).toEqual({ kind: 'analysing' });
-    expect(decideStep({ ...base, minimumMet: true, themes: 'done' })).toEqual({ kind: 'done' });
   });
 
   it('all views used but still below the minimum: let the analysis explain', () => {
