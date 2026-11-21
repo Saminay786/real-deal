@@ -21,7 +21,9 @@ export function SummaryCard({ result, ai, onDownload }: { result: AiResult; ai: 
       <h2>Summary</h2>
       <p>{result.summary}</p>
       <p class="small muted">
-        {result.summarySource === 'nano' ? 'Written by on-device AI from the test results.' : 'Template summary from the test results.'}
+        {result.summarySource === 'nano'
+          ? `Written by on-device AI from the test results${result.note ? ` (${result.note})` : ''}.`
+          : 'Template summary from the test results.'}
         {result.labelsApplied > 0 && ` Theme names by on-device AI (${result.labelsApplied}).`}
       </p>
       {result.rejected && (

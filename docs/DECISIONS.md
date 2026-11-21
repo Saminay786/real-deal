@@ -354,3 +354,18 @@ than polarity.
 - **Also seen.** "video, images, com" (now named "Product video") was still
   present with the same 220 sentences. Either the #24 build had not been loaded,
   or those sentences are not URL fragments. Next step: read that theme's examples.
+
+### 26. kErrorUnknown is specific to the JSON-constrained summary
+- **Observation.** After #25 (fresh session + retry), labels again succeeded
+  (8 themes: "Fading Colors", "Incorrect Pack", "Softness of Fabric", …), but
+  the summary still failed twice with kErrorUnknown. So it is not context
+  overflow. The difference from the working label prompt is the schema: a single
+  long free-text field (`summary`, maxLength 450) under constrained decoding.
+- **Also confirmed.** The URL-fragment junk theme is gone after reloading
+  (220 → 218 sentences). "video" remains as an ordinary word in one cluster.
+- **Decision.** Try the JSON-constrained summary once; if that call errors, ask
+  again in a new session **without** `responseConstraint`, requesting only the
+  sentences. The plain-text answer is cleaned (quotes, code fences, "Summary:")
+  and passes **the same validation** (numbers, ≤ 3 sentences, no false change
+  claims). The panel notes "plain-text fallback" when used, and the rejection
+  reason names both errors if both fail.

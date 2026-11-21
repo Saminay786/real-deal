@@ -212,13 +212,14 @@ export const SUMMARY_SCHEMA = {
   required: ['summary'],
 } as const;
 
-export function buildNarrativePrompt(input: NarrativeInput): string {
+export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'plain' = 'json'): string {
   return [
     'Write a summary for a shopper of at most 3 short sentences, based ONLY on this JSON about one product\'s reviews.',
     'Rules: use only facts and numbers that appear in the JSON; do not add causes, advice or other numbers;',
     'a theme with "changed": false has NO clear change, so never describe it as rising or falling;',
     'if no theme changed, say there was no clear change and name the most mentioned themes;',
-    'neutral wording; never say reviews are fake. Answer as JSON {"summary": "..."}.',
+    'neutral wording; never say reviews are fake.',
+    format === 'json' ? 'Answer as JSON {"summary": "..."}.' : 'Reply with only the summary sentences, nothing else.',
     '',
     JSON.stringify(input),
   ].join('\n');
@@ -267,6 +268,17 @@ export function parseSummary(raw: string): string | null {
   }
 }
 
+/** Plain-text answer: strip surrounding quotes/markdown and a leading "Summary:". */
+export function parsePlainSummary(raw: string): string | null {
+  const t = raw
+    .trim()
+    .replace(/^```\w*\s*|\s*```$/g, '')
+    .replace(/^\s*(summary)\s*:\s*/i, '')
+    .replace(/^["“]|["”]$/g, '')
+    .trim();
+  return t.length > 0 ? t : null;
+}
+
 /** Deterministic fallback summary (≤ 3 sentences) from the same facts. */
 export function templateSummary(input: NarrativeInput): string {
   const changed = input.themes.filter((t) => t.changed);
@@ -298,6 +310,8 @@ export interface AiResult {
   labelsApplied: number;
   /** The AI's summary if it was rejected, and why (shown for transparency). */
   rejected?: { draft: string; reason: string };
+  /** How an accepted AI summary was obtained, if not the normal way. */
+  note?: string;
 }
 
 /**
@@ -308,14 +322,15 @@ export interface AiResult {
 async function promptFresh(
   makeSession: () => Promise<NanoSession>,
   text: string,
-  schema: object,
+  schema: object | null,
   signal?: AbortSignal,
+  attempts = 2,
 ): Promise<string> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const session = await makeSession();
     try {
-      return await session.prompt(text, { responseConstraint: schema, signal });
+      return await session.prompt(text, schema ? { responseConstraint: schema, signal } : { signal });
     } catch (e) {
       lastError = e;
     } finally {
@@ -324,6 +339,8 @@ async function promptFresh(
   }
   throw lastError;
 }
+
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Labels themes and writes the summary, each in its own session; any failure falls back per item. */
 export async function enrichWithNano(
@@ -342,16 +359,37 @@ export async function enrichWithNano(
     // keep keyword labels
   }
   const input = buildNarrativeInput(a, themes);
-  let rejected: AiResult['rejected'];
+  // 1) JSON-constrained; 2) if that call errors, plain text (constrained decoding of a
+  //    long free-text field failed with kErrorUnknown on real Nano, DECISIONS #26).
+  let raw: string | null = null;
+  let format: 'json' | 'plain' = 'json';
+  let jsonError: string | null = null;
   try {
-    const raw = await promptFresh(makeSession, buildNarrativePrompt(input), SUMMARY_SCHEMA, signal);
-    const summary = parseSummary(raw);
-    const problem = summary === null ? 'not valid JSON' : summaryProblem(summary, input);
-    if (summary !== null && problem === null) return { themes, summary, summarySource: 'nano', labelsApplied };
-    rejected = { draft: summary ?? raw.slice(0, 450), reason: problem ?? 'invalid' };
+    raw = await promptFresh(makeSession, buildNarrativePrompt(input, 'json'), SUMMARY_SCHEMA, signal, 1);
   } catch (e) {
-    rejected = { draft: '', reason: `AI error: ${e instanceof Error ? e.message : String(e)}` };
+    jsonError = errText(e);
+    try {
+      format = 'plain';
+      raw = await promptFresh(makeSession, buildNarrativePrompt(input, 'plain'), null, signal, 1);
+    } catch (e2) {
+      return {
+        themes,
+        summary: templateSummary(input),
+        summarySource: 'template',
+        labelsApplied,
+        rejected: { draft: '', reason: `AI error: ${jsonError} (JSON), then ${errText(e2)} (plain text)` },
+      };
+    }
   }
+  const summary = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  const problem = summary === null ? `not valid ${format === 'json' ? 'JSON' : 'text'}` : summaryProblem(summary, input);
+  if (summary !== null && problem === null) {
+    return { themes, summary, summarySource: 'nano', labelsApplied, ...(jsonError ? { note: 'plain-text fallback' } : {}) };
+  }
+  const rejected: AiResult['rejected'] = {
+    draft: summary ?? raw.slice(0, 450),
+    reason: `${problem ?? 'invalid'}${jsonError ? ' (plain-text fallback after JSON error)' : ''}`,
+  };
   return { themes, summary: templateSummary(input), summarySource: 'template', labelsApplied, rejected };
 }
 

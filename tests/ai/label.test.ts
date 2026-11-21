@@ -7,6 +7,7 @@ import {
   enrichWithNano,
   nanoAvailability,
   parseLabels,
+  parsePlainSummary,
   templateSummary,
   validateSummary,
   withoutNano,
@@ -165,6 +166,14 @@ describe('validateSummary', () => {
   });
 });
 
+describe('parsePlainSummary', () => {
+  it('strips quotes, code fences and a "Summary:" prefix', () => {
+    expect(parsePlainSummary('Summary: "No clear change."')).toBe('No clear change.');
+    expect(parsePlainSummary('```\nNo clear change.\n```')).toBe('No clear change.');
+    expect(parsePlainSummary('   ')).toBeNull();
+  });
+});
+
 describe('templateSummary', () => {
   it('reports significant shifts', () => {
     expect(templateSummary(buildNarrativeInput(analysis(true)))).toBe(
@@ -230,15 +239,25 @@ describe('enrichWithNano', () => {
     expect(n.prompts[1]).not.toContain('I received 9 pics');
   });
 
-  it('retries a failed prompt once in a new session', async () => {
+  it('falls back to a plain-text summary in a new session when the JSON-constrained call errors', async () => {
     const n = fakeNano([
       '{"themes":[]}',
       new Error('An unknown error occurred: kErrorUnknown'),
-      JSON.stringify({ summary: 'Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.' }),
+      'Summary: "Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026."',
     ]);
     const r = await enrichWithNano(analysis(true), n.make);
     expect(r.summarySource).toBe('nano');
+    expect(r.summary).toBe('Mentions of missing pieces rose from 5% to 17% of reviews from Oct 2026.');
+    expect(r.note).toBe('plain-text fallback');
     expect(n.sessions()).toBe(3);
+    expect(n.prompts[2]).toContain('Reply with only the summary sentences');
+  });
+
+  it('still validates the plain-text fallback', async () => {
+    const n = fakeNano(['{"themes":[]}', new Error('kErrorUnknown'), 'Missing pieces rose to 40% of reviews.']);
+    const r = await enrichWithNano(analysis(true), n.make);
+    expect(r.summarySource).toBe('template');
+    expect(r.rejected?.reason).toBe('number 40 is not in the test results (plain-text fallback after JSON error)');
   });
 
   it('falls back to the template when the AI invents a number', async () => {
@@ -262,7 +281,7 @@ describe('enrichWithNano', () => {
     expect(r.labelsApplied).toBe(0);
     expect(r.themes).toEqual(THEMES);
     expect(r.summarySource).toBe('template');
-    expect(r.rejected?.reason).toBe('AI error: model crashed');
-    expect(n.sessions()).toBe(4); // 2 prompts × (1 try + 1 retry)
+    expect(r.rejected?.reason).toBe('AI error: model crashed (JSON), then model crashed (plain text)');
+    expect(n.sessions()).toBe(4); // labels: 2 tries; summary: JSON + plain text
   });
 });
