@@ -225,6 +225,13 @@ describe('enrichWithNano', () => {
     const r = await enrichWithNano(analysis(true), s);
     expect(r.summarySource).toBe('template');
     expect(r.summary).toBe(withoutNano(analysis(true)).summary);
+    expect(r.rejected).toEqual({ draft: 'Missing pieces rose to 25% of reviews.', reason: 'number 25 is not in the test results' });
+  });
+
+  it('explains a rejected "fell" when nothing changed', async () => {
+    const s = fakeSession(['{"themes":[]}', JSON.stringify({ summary: 'Value for Money fell from 33% to 33%.' })]);
+    const r = await enrichWithNano(analysis(false), s);
+    expect(r.rejected?.reason).toBe('says "fell" although no theme changed significantly');
   });
 
   it('keeps keyword labels and the template when the AI fails entirely', async () => {

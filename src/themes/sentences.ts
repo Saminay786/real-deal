@@ -63,12 +63,23 @@ export interface SentenceSplit {
   nonEnglish: Set<string>;
 }
 
-/** Title (if it is a real sentence) followed by body sentences, English only. */
+/**
+ * True for script/JSON fragments rather than prose. Reviews stored before the
+ * extraction fix (DECISIONS #23) contain video-player config text such as
+ * `P.when("A").execute(…{"isVse":false…})`.
+ */
+export function isCodeLike(s: string): boolean {
+  if (/[{}<>]|=>|\bfunction\s*\(|\bP\.when\b|\.execute\(|":\s*(true|false|null|"|\d)/.test(s)) return true;
+  const symbols = (s.match(/[^\p{L}\p{N}\s.,!?'’"“”()%₹-]/gu) ?? []).length;
+  return symbols / Math.max(1, s.length) > 0.15;
+}
+
+/** Title (if it is a real sentence) followed by body sentences, English only, without code fragments. */
 export function reviewSentences(reviews: readonly ReviewText[]): SentenceSplit {
   const sentences: Sentence[] = [];
   const nonEnglish = new Set<string>();
   for (const r of reviews) {
-    const all = [...splitSentences(r.title), ...splitSentences(r.body)];
+    const all = [...splitSentences(r.title), ...splitSentences(r.body)].filter((s) => !isCodeLike(s));
     const english = all.filter((s) => !isNonEnglish(s));
     if (all.length > 0 && english.length === 0) nonEnglish.add(r.reviewId);
     english.forEach((text, index) => sentences.push({ reviewId: r.reviewId, index, text }));

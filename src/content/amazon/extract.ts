@@ -143,10 +143,18 @@ export function parseHelpful(s: string | null): number {
   return parseCount(s) ?? 0;
 }
 
-/** Text with <br> kept as newlines and other whitespace collapsed. */
+/**
+ * Elements whose text is not written by the reviewer. On the live page, video
+ * reviews embed a player-config <script> inside the review body; its JSON
+ * ("isVse": false, …) leaked into review text and became a junk theme.
+ */
+const NON_REVIEW_TEXT = 'script, style, noscript, template, video, [class*="video-block"], [data-hook="review-media"]';
+
+/** Text with <br> kept as newlines and other whitespace collapsed; scripts and media ignored. */
 function multilineText(el: Element | null): string | null {
   if (!el) return null;
   const clone = el.cloneNode(true) as Element;
+  for (const junk of clone.querySelectorAll(NON_REVIEW_TEXT)) junk.remove();
   for (const br of clone.querySelectorAll('br')) br.replaceWith('\n');
   const t = (clone.textContent ?? '')
     .split('\n')
@@ -170,7 +178,9 @@ function extractOneReview(el: Element, asin: string | null): Review | null {
   if (!reviewId) return null; // without a stable ID we cannot de-duplicate
   const ratingEl = first(el, REVIEWS.rating);
   const rating = parseRating(text(ratingEl));
-  const rawTitle = text(first(el, REVIEWS.title));
+  const titleEl = first(el, REVIEWS.title)?.cloneNode(true) as Element | undefined;
+  for (const junk of titleEl?.querySelectorAll(NON_REVIEW_TEXT) ?? []) junk.remove();
+  const rawTitle = text(titleEl ?? null);
   const title = rawTitle?.replace(/^\d(?:\.\d)?\s*out of\s*5\s*stars\s*/i, '').trim() || null;
   const { country, date } = parseReviewDate(text(first(el, REVIEWS.date)));
   return {

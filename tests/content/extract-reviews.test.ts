@@ -98,6 +98,20 @@ describe('extractReviews on saved pages', () => {
     expect(Math.max(...reviews.map((r) => r.helpfulVotes ?? 0))).toBe(7);
   });
 
+  it('ignores scripts and video players inside the review body (live pages, not fixtures)', () => {
+    // Saved fixtures had <script> stripped; on the live page a video review embeds the
+    // player config in the body, and its JSON became a junk "false, vse, automated" theme.
+    const { doc, url } = loadFixture('reviews-a-p1');
+    const body = doc.querySelector('#R3RST0O7ZS3260 [data-hook="review-body"]');
+    if (!body) throw new Error('fixture changed');
+    body.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="video-block"><video src="x.mp4"></video><script>P.when("A").execute(function(){ ({"isVse":false,"automated":true}) })</script></div>',
+    );
+    const [r] = extractReviews(doc, url);
+    expect(r?.body).toBe('A terribly flimsy hook. I hung a calendar and a plastic colander on the wall, but it couldn’t hold them.');
+  });
+
   it('returns [] on a page without reviews', () => {
     const { doc, url } = loadFixture('product-none');
     expect(extractReviews(doc, url)).toEqual([]);

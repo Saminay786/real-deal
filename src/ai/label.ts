@@ -236,20 +236,26 @@ export function allowedNumbers(input: NarrativeInput): Set<string> {
 }
 
 /**
- * Accepts a summary only if it has 1–3 sentences, every number in it is in
- * `allowed`, and it does not call an unchanged theme rising/falling by name.
+ * Why a summary is rejected, or null if accepted. Accepts only 1–3 sentences in
+ * which every number appears in the facts, without "fake", and without a claimed
+ * rise/fall when no theme changed.
  */
-export function validateSummary(text: string, input: NarrativeInput): boolean {
+export function summaryProblem(text: string, input: NarrativeInput): string | null {
   const t = text.trim();
-  if (t.length === 0 || t.length > 450) return false;
+  if (t.length === 0) return 'empty';
+  if (t.length > 450) return 'too long';
   const sentences = t.split(/(?<=[.!?])\s+/).filter((x) => x.trim().length > 0);
-  if (sentences.length > 3) return false;
+  if (sentences.length > 3) return `${sentences.length} sentences (max 3)`;
   const allowed = allowedNumbers(input);
-  for (const n of t.match(/\d+(?:\.\d+)?/g) ?? []) if (!allowed.has(n)) return false;
-  if (/\bfake\b/i.test(t)) return false;
-  // If nothing changed, the summary must not claim a rise or fall.
-  if (!input.themes.some((x) => x.changed) && /\b(rose|risen|increas|grew|jump|fell|drop|declin|decreas)/i.test(t)) return false;
-  return true;
+  for (const n of t.match(/\d+(?:\.\d+)?/g) ?? []) if (!allowed.has(n)) return `number ${n} is not in the test results`;
+  if (/\bfake\b/i.test(t)) return 'mentions "fake"';
+  const claim = t.match(/\b(rose|risen|increas\w*|grew|jump\w*|fell|drop\w*|declin\w*|decreas\w*)/i);
+  if (!input.themes.some((x) => x.changed) && claim) return `says "${claim[0]}" although no theme changed significantly`;
+  return null;
+}
+
+export function validateSummary(text: string, input: NarrativeInput): boolean {
+  return summaryProblem(text, input) === null;
 }
 
 export function parseSummary(raw: string): string | null {
@@ -290,6 +296,8 @@ export interface AiResult {
   summary: string;
   summarySource: 'nano' | 'template';
   labelsApplied: number;
+  /** The AI's summary if it was rejected, and why (shown for transparency). */
+  rejected?: { draft: string; reason: string };
 }
 
 /** Labels themes and writes the summary with `session`; any failure falls back per item. */
@@ -305,16 +313,17 @@ export async function enrichWithNano(a: ThemeAnalysis, session: NanoSession, sig
     // keep keyword labels
   }
   const input = buildNarrativeInput(a, themes);
+  let rejected: AiResult['rejected'];
   try {
     const raw = await session.prompt(buildNarrativePrompt(input), { responseConstraint: SUMMARY_SCHEMA, signal });
     const summary = parseSummary(raw);
-    if (summary && validateSummary(summary, input)) {
-      return { themes, summary, summarySource: 'nano', labelsApplied };
-    }
-  } catch {
-    // fall through to the template
+    const problem = summary === null ? 'not valid JSON' : summaryProblem(summary, input);
+    if (summary !== null && problem === null) return { themes, summary, summarySource: 'nano', labelsApplied };
+    rejected = { draft: summary ?? raw.slice(0, 450), reason: problem ?? 'invalid' };
+  } catch (e) {
+    rejected = { draft: '', reason: `AI error: ${e instanceof Error ? e.message : String(e)}` };
   }
-  return { themes, summary: templateSummary(input), summarySource: 'template', labelsApplied };
+  return { themes, summary: templateSummary(input), summarySource: 'template', labelsApplied, rejected };
 }
 
 /** Result without any AI. */

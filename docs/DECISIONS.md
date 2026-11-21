@@ -289,3 +289,30 @@ than polarity.
   is confusing. The interval again excludes 0 while p = 0.26 (entry 20).
   **Decision (Phase 6):** when stratified, show star-adjusted before/after shares
   consistent with Δ, and show intervals only for significant themes.
+
+### 23. Gemini Nano works; a junk theme exposed a reading bug the fixtures hid
+- **Nano labels on real data** (baby pyjamas): all 8 themes renamed with
+  sentiment: "Fabric Softness" (positive), "Colour Fading" (negative), "Incorrect
+  Sizes" (negative), "Value for Money" (positive), "Baby Suit Sizing" (neutral),
+  plus a weaker "Go for it". A clear improvement over keyword labels.
+- **Nano summary was rejected** by validation and the template was shown, but
+  the panel did not say why. **Decision:** record the rejected draft and the
+  reason ("number 11 is not in the test results", "says 'fell' although no
+  theme changed significantly", …) and show it under the summary. Rejection
+  reasons are evidence about how often the model drifts from the facts.
+- **Junk theme "false, vse, automated".** On the live page, video reviews embed a
+  player-config `<script>` inside the review body. `textContent` includes script
+  text, so the JSON (`"isVse": false …`) was stored as review text and clustered
+  into its own theme. The fixtures never showed this because the fixture saver
+  strips `<script>` tags. **A test environment that differs from production hid
+  a production bug.**
+- **Decisions.**
+  1. Extraction removes `script, style, noscript, template, video` and video
+     blocks before reading a review's title and body (test injects a video block
+     with a script into a real fixture).
+  2. Reviews already stored contain the junk, so sentence splitting also drops
+     code-like sentences (braces, `=>`, `function(`, JSON `"key": value`, or > 15%
+     symbols). Re-running the analysis cleans existing data without re-collecting.
+     Embedding caches recompute automatically because the sentence list changed.
+  3. Lesson for fixtures: keep saving them with scripts stripped (privacy and
+     offline tests), but add targeted tests for live-only markup.

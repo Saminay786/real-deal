@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { isNonEnglish, reviewSentences, splitSentences } from '../../src/themes/sentences';
+import { isCodeLike, isNonEnglish, reviewSentences, splitSentences } from '../../src/themes/sentences';
+
+describe('isCodeLike', () => {
+  it('flags script/JSON fragments that leaked into stored reviews', () => {
+    expect(isCodeLike('P.when("A", "ready").execute(function(A) { var config = {"isVse":false')).toBe(true);
+    expect(isCodeLike('"automated": true, "mediaType": "video"')).toBe(true);
+    expect(isCodeLike('x => y && z || w ## @@ ^^ ~~ ``')).toBe(true);
+  });
+
+  it('keeps ordinary review prose, including prices and percentages', () => {
+    expect(isCodeLike('Worth the ₹249 price, holds 2.5 kg (tested).')).toBe(false);
+    expect(isCodeLike('Only 90% of the hooks stuck – the rest fell off!')).toBe(false);
+    expect(isCodeLike('I ordered 20 qty but received only 19.')).toBe(false);
+  });
+});
 
 describe('splitSentences', () => {
   it('splits on punctuation and line breaks, dropping fragments under 3 words', () => {
