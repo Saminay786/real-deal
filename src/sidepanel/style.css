@@ -149,6 +149,54 @@ button.link.underline {
   color: var(--ok);
 }
 
+:root {
+  --up: #cf222e;
+  --down: #1a7f37;
+  --bar-before: #8c959f;
+  --bar-after: #0969da;
+}
+
+.tchange {
+  margin: 4px 0 2px;
+}
+
+.tchange text {
+  font: 10px system-ui, sans-serif;
+  fill: var(--fg);
+}
+
+.tchange .tc-lab {
+  fill: var(--muted);
+}
+
+.tchange .tc-tick {
+  fill: var(--muted);
+  font-size: 9px;
+}
+
+.tc-bar.before {
+  fill: var(--bar-before);
+}
+
+.tc-bar.after {
+  fill: var(--bar-after);
+}
+
+.tc-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.tc-zero {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
+
+.tc-caption {
+  margin: 2px 0 4px;
+}
+
 .legend {
   margin: 6px 0 8px;
   padding: 6px 8px;

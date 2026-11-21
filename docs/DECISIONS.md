@@ -49,6 +49,7 @@ cause for each of them.)
 | 33 | Next action hidden | Each phase added its own card and button, nothing owned "what should the user do now?", and testing was done by people who knew where everything was. |
 | 34 | "Done" hid Load on new filter pages | Next-step rules checked "analysed?" before "page unfinished?", and tests never covered going back to collecting after an analysis. |
 | 35 | Stratified a complete collection; one-level Δ shown as overall; unexplained p/q/Δ | The stratify rule ignored completeness. The single-stratum fallback treated "one of five qualifies" like "only one exists". The debug UI was written for developers. |
+| 37 | "Range of what?" | Five statistics in one line of notation. The relationships (pooled shares → difference → range → 0) were never drawn, and the format was designed by people who already read CIs. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -720,3 +721,26 @@ than polarity.
   for significant themes (#20); time-since-purchase caveat (#30); brand words in
   keyword labels (#22B). Still to measure in the research notebook: theme stability
   between runs (#24).
+
+### 37. Numbers without a picture were not understood
+- **What happened.** After the legend (#35) and two text explanations, the user
+  still asked what "[−6%, 24%]" was a range *of* ("what one number? what are you
+  even saying?"). They also asked whether the percentages were per month.
+- **Why it happened.** Each theme row packed five statistics into one line
+  ("13% → 23% of reviews, from May 2023 · Δ +10% [−6%, 24%] · p = …, q = …").
+  The relationship between them (two pooled shares, their difference, a range
+  around the difference, and 0 as the reference) existed only in notation.
+  Explanations in chat cannot fix a display that does not show those
+  relationships.
+- **Why it wasn't caught earlier.** The row format was designed by and for people
+  who already read confidence intervals. "Pooled before/after, not per month" was
+  never written anywhere on screen.
+- **Decision.** Each theme gets a small inline-SVG picture: grey "Before <month>"
+  and blue "After <month>" bars with their %, then a **change line** with the dot
+  at the change in points, the **shaded range**, a dashed **"0 = no change"** mark
+  and the range's ends labelled. It is followed by one plain sentence: "Mentions went
+  from 13% to 23% of reviews: a change of +10 points. The real change is likely
+  between −6 and +24 points. The range includes 0, so this could be chance." The
+  p/q line becomes a small "Test:" note. The legend describes the picture. This
+  starts the Phase 6 work early.
+- **Evidence.** Builds and renders the same data. Still to see in Chrome with the user.

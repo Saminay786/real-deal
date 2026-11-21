@@ -1,6 +1,7 @@
 // Phase 4 debug list of theme shifts. Phase 6 replaces this with the trends UI.
 import type { ThemeAnalysis } from '../themes/analyze';
 import type { Theme } from '../types';
+import { ThemeChange } from './ThemeChange';
 
 export type ThemesState =
   | { kind: 'idle' }
@@ -8,7 +9,6 @@ export type ThemesState =
   | { kind: 'done'; analysis: ThemeAnalysis }
   | { kind: 'error'; message: string };
 
-const pct = (x: number) => `${(100 * x).toFixed(0)}%`;
 const month = (iso: string) => {
   const [y, m] = iso.split('-');
   return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m) - 1] ?? '?'} ${y}`;
@@ -83,13 +83,13 @@ function Results({ a, themes }: { a: ThemeAnalysis; themes: readonly Theme[] }) 
             <strong>Theme</strong>: a topic that reviews keep mentioning, found by grouping sentences with similar meaning.
           </li>
           <li>
-            <strong>40% → 32% of reviews, from May 2023</strong>: the share of reviews that mention this theme before and
-            after the month where a change is most likely.
+            <strong>Grey and blue bars</strong>: the share of reviews mentioning the theme <em>before</em> and{' '}
+            <em>after</em> one split month (all reviews on each side pooled, not month by month).
           </li>
           <li>
-            <strong>Δ (delta) = the change</strong> in that share, in percentage points, with a 95% range in brackets.
-            Treat it as a rough guide: it is computed after picking the most likely month, so it looks more certain than
-            it is.
+            <strong>Change line</strong>: the <strong>dot</strong> is the change in points (after − before). The shaded{' '}
+            <strong>band</strong> is the likely range of the real change (95% confidence interval). The dashed line is{' '}
+            <strong>0 = no change</strong>. If the band covers 0, the change could be chance.
           </li>
           <li>
             <strong>p</strong>: how often a change at least this big appears by pure chance, if nothing really changed
@@ -113,9 +113,10 @@ function Results({ a, themes }: { a: ThemeAnalysis; themes: readonly Theme[] }) 
               <ThemeName t={byId.get(s.themeId)} fallback={s.label} />{' '}
               {s.significant ? <span class="ok">· changed</span> : <span class="muted">· no clear change</span>}
             </div>
-            <div class="small">
-              {pct(s.before.share)} → {pct(s.after.share)} of reviews, from {month(s.changeAt)} · Δ {s.diff >= 0 ? '+' : ''}
-              {pct(s.diff)} [{pct(s.diffCi[0])}, {pct(s.diffCi[1])}] · p = {s.pValue.toFixed(3)}, q = {s.qValue.toFixed(3)}
+            <ThemeChange s={s} />
+            <div class="small muted">
+              Test: p = {s.pValue.toFixed(3)}, q = {s.qValue.toFixed(3)} (“changed” needs q ≤ 0.10; split at{' '}
+              {month(s.changeAt)})
             </div>
             <details class="small">
               <summary>Examples</summary>
