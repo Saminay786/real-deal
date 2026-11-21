@@ -3,8 +3,15 @@
 import { viewFromUrl } from '../collect/views';
 import { debug, setDebug } from '../debug';
 import { loadSettings } from '../settings';
-import { isLoadCommand, type LoadProgressMessage, type ReviewsSeenMessage } from '../messages';
-import { ratingInterval } from '../stats/rating';
+import {
+  isLoadCommand,
+  isSearchCommand,
+  type LoadProgressMessage,
+  type ReviewsSeenMessage,
+  type SearchInfo,
+} from '../messages';
+import { rankingScore, ratingInterval } from '../stats/rating';
+import { extractSearchResults, renderScoreBadges, reorderCards } from './amazon/search';
 import { renderBadge } from './amazon/badge';
 import { extractBrand, extractProduct, extractTotalReviews } from './amazon/extract';
 import { countReviewsOnPage, loadView } from './amazon/loader';
@@ -82,6 +89,28 @@ function runReviewsPage(): void {
   });
 }
 
+/** Search page: score badges on cards; the side panel can read results and sort this page. */
+function runSearchPage(showBadges: boolean): void {
+  if (showBadges) renderScoreBadges(document);
+  let sorted = false;
+  const info = (): SearchInfo => ({
+    sortedByScore: sorted,
+    results: extractSearchResults(document).map((r) => ({
+      ...r,
+      score: rankingScore(r.rating, r.ratingCount).value?.score ?? null,
+    })),
+  });
+  chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
+    if (!isSearchCommand(msg)) return false;
+    if (msg.type === 'rd:search-sort') {
+      reorderCards(document, msg.byScore);
+      sorted = msg.byScore;
+    }
+    sendResponse(info());
+    return false;
+  });
+}
+
 void (async () => {
   try {
     const settings = await loadSettings();
@@ -89,6 +118,7 @@ void (async () => {
     const type = pageType(location.pathname);
     if (type === 'product' && settings.showBadge) runProductPage();
     else if (type === 'reviews') runReviewsPage();
+    else if (type === 'search') runSearchPage(settings.showBadge);
   } catch (e) {
     // Never break the page.
     debug('content script error', e);

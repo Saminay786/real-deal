@@ -278,6 +278,8 @@ Results must be identical across runs for the same input.
   "Show 10 more"), `reviews-a-60` (60) — same product, B0CCM8L54V
 - `reviews-b-p1` (10 reviews, Most recent) — B0GLG5JSHK
 - `reviews-b-top` (10 reviews, "Top reviews" order) — B0HB6VXMJ6
+- `search-a` ("wall hooks", 60 cards) and `search-b` ("bluetooth earbuds", 22 cards,
+  incl. 4.6★ from 4 ratings), both with sponsored and unrated cards
 - amazon.in serves review lists at `/portal/customer-reviews/<ASIN>`.
 - Load in Chrome: `chrome://extensions` → Developer mode → Load unpacked → `dist/`
 
@@ -316,4 +318,6 @@ Results must be identical across runs for the same input.
   FPR, power, real detected changes read by hand, ranking constants, stability
   (DECISIONS #48)
 ### v2
-- [ ] Phase 8 — search re-ranking (pipeline C)
+- [x] Phase 8 — search re-ranking (pipeline C): SearchResult extraction (2
+  fixtures, sponsored marked), ranking score with data-driven constants, score
+  badge per card, side-panel sort/restore of the current page only. (DECISIONS #50)

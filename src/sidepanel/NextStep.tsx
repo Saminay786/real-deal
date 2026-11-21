@@ -3,6 +3,7 @@
 
 export type Step =
   | { kind: 'no-product' }
+  | { kind: 'search' }
   | { kind: 'open-reviews'; reviewsNeeded: number; onOpen: () => void }
   | { kind: 'load-view'; viewLabel: string; onLoad: () => void; onAnalyse: (() => void) | null }
   | { kind: 'rerun'; newReviews: number; onRerun: () => void }
@@ -14,6 +15,7 @@ export type Step =
 
 const STEP_NO: Record<Step['kind'], number> = {
   'no-product': 0,
+  search: 0,
   'open-reviews': 1,
   'load-view': 1,
   loading: 1,
@@ -45,6 +47,12 @@ export function NextStep({ step, error }: { step: Step; error: string | null }) 
     <section class="nextstep">
       {n > 0 && <Progress n={n} />}
       {step.kind === 'no-product' && <p class="hint">Open a product on amazon.in to start.</p>}
+      {step.kind === 'search' && (
+        <p class="hint">
+          Search results: each card shows a Real Deal score. Sort this page by it below, or open a product to analyse
+          its reviews.
+        </p>
+      )}
 
       {step.kind === 'open-reviews' && (
         <>

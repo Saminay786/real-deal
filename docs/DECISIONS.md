@@ -1015,3 +1015,25 @@ The Python implementation reproduces the extension's hand-computed test values (
   flagged in ≤ 1% of 200 runs. A synthetic eye-cream pattern gives "suspicious" with all three signals, and a
   launch-like burst with normal ratings gives "busy". Selection tests cover complete, unfiltered-only and
   star-only cases. 207 tests pass.
+
+## 2026-11-22 · Phase 8: search re-ranking (v2)
+
+### 50. Search results scored and sortable; two failed fixture attempts first
+- **Built.** `content/amazon/search.ts` reads each `s-search-result` card: ASIN, title, link, rating and count
+  from aria-labels ("4.0 out of 5 stars", "3,727 ratings"), main price (not M.R.P. or per-unit), and
+  sponsored (label or `AdHolder` class). `rankingScore` in `stats/rating.ts` computes
+  (C·m + N·r̄)/(C+N) − 1.645·σ/√(C+N) with the research constants m = 3.98, σ = 1.34, C = 5. Every card gets a
+  badge ("Real Deal score 4.25 · few ratings · sponsored"), and the side panel shows how many results were
+  scored, the top 5, and **Sort this page by score / Restore Amazon's order**. Cards are swapped through
+  placeholder slots, so banners and widgets between them stay put, and restore is exact (tested). Nothing
+  is fetched.
+- **Fixture difficulty.** The first two save attempts captured a product page and review pages instead of
+  search pages. *Why:* the save button saves whatever the tab shows when clicked, and by then the user had
+  clicked through from the results (once possibly via the panel's "Open the reviews" step). *Why not caught
+  by the tool:* it checks nothing about the page type. *Fix:* precise instructions ("paste
+  amazon.in/s?k=wall+hooks, don't click a product, check the address bar"), and each saved file was verified
+  by its saved-from URL and card count before use. Possible improvement: the saver could warn when a page
+  named `search-*` has no result cards.
+- **Evidence.** Hand-computed scores (4.6★×9 → 3.79, 4.3★×2000 → 4.25, 4.6★×9000 → 4.58). Both fixtures are
+  read correctly (60 and 22 cards, sponsored and unrated cards included). One badge per card, idempotent.
+  Sorting is non-increasing with unscored cards last, and restore returns the exact original order.

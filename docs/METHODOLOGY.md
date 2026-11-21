@@ -289,6 +289,35 @@ A theme is flagged as significant if $q \le 0.10$.
 $m\,p/\text{rank}$ are $0.02, 0.02, 0.04, 0.04$. Taking the running minimum from
 the top gives $q = (0.02, 0.04, 0.04, 0.02)$ in input order, so all four are flagged.
 
+## Ranking score (search results)
+
+**Question.** Which product on a search page has the best rating *that you can trust*? 4.6★ from 9 ratings
+and 4.3★ from 2,000 ratings are not comparable at face value.
+
+**Shrink, then be cautious.** With Amazon's average $\bar r$ from $N$ ratings, a prior mean $m$, per-review
+standard deviation $\sigma$ and prior weight $C$:
+
+$$\tilde r = \frac{C\,m + N\,\bar r}{C + N}, \qquad \mathrm{SE} = \frac{\sigma}{\sqrt{C + N}}, \qquad \text{score} = \tilde r - 1.645\,\mathrm{SE}.$$
+
+$\tilde r$ is the posterior mean of a normal model in which the true mean has prior $\mathcal N(m, \sigma^2/C)$.
+Subtracting $1.645\,\mathrm{SE}$ gives a one-sided 95% lower bound, so products are ranked by how good they
+*at least* are.
+
+**Constants from data** (research notebook, 6,044 amazon.com beauty products with ≥ 20 reviews): $m = 3.98$,
+$\sigma = 1.34$ (pooled within-product SD), and $C = \sigma^2/\tau^2 \approx 5$, where $\tau = 0.61$ is the SD of
+true product means (method of moments: variance of product means minus mean sampling variance). The
+placeholder $C = 20$ trusted products' own ratings far too late.
+
+| Product | $\tilde r$ | SE | Score |
+|---|---|---|---|
+| 4.6★ from 9 | 4.379 | 0.358 | **3.79** |
+| 4.3★ from 2,000 | 4.299 | 0.030 | **4.25** |
+| 4.6★ from 9,000 | 4.600 | 0.014 | **4.58** |
+
+**Limits.** Amazon shows the average rounded to one decimal. Products without ratings get no score and sort
+last. Sponsored results are scored like the rest and labelled. Sorting reorders only the cards already on the
+page.
+
 ## Review bursts
 
 **Question.** Was there a period when far more reviews arrived than usual, and were those reviews unusually

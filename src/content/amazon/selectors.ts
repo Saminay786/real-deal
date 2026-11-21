@@ -56,6 +56,18 @@ export const REVIEWS = {
   captcha: ['form[action*="validateCaptcha"]', '#captchacharacters', 'form[action*="/errors/validateCaptcha"]'],
 } as const;
 
+/** Search results pages (/s?k=…). Read from saved fixtures search-a / search-b (2026-11-22). */
+export const SEARCH = {
+  card: ['div[data-component-type="s-search-result"][data-asin]'],
+  title: ['h2'],
+  link: ['h2 a', 'a.a-link-normal[href*="/dp/"]'],
+  /** Main price, not the strike-through M.R.P. (.a-text-price) or per-unit price. */
+  price: ['.a-price:not(.a-text-price) .a-offscreen', '.a-price .a-offscreen'],
+  sponsored: ['.puis-sponsored-label-text', '.s-sponsored-label-info-icon'],
+  /** Card class Amazon uses for ads. */
+  sponsoredCardClass: 'AdHolder',
+} as const;
+
 /** Header elements showing the signed-in user's name and delivery address. Blanked in fixtures. */
 export const PERSONAL_INFO_SELECTORS: readonly string[] = [
   '#nav-link-accountList-nav-line-1',

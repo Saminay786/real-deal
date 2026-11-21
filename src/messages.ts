@@ -37,7 +37,31 @@ export interface LoadProgressMessage {
   end: LoadEnd | null;
 }
 
+/** Side panel -> content script on a search page: read results, or sort/restore this page. */
+export type SearchCommand = { type: 'rd:search-info' } | { type: 'rd:search-sort'; byScore: boolean };
+
+export interface ScoredResult {
+  asin: string | null;
+  title: string | null;
+  rating: number | null;
+  ratingCount: number | null;
+  price: number | null;
+  sponsored: boolean;
+  position: number;
+  score: number | null;
+}
+
+/** Content script -> side panel reply to a SearchCommand. */
+export interface SearchInfo {
+  results: ScoredResult[];
+  sortedByScore: boolean;
+}
+
 const obj = (m: unknown): m is Record<string, unknown> => typeof m === 'object' && m !== null;
+
+export function isSearchCommand(m: unknown): m is SearchCommand {
+  return obj(m) && (m.type === 'rd:search-info' || (m.type === 'rd:search-sort' && typeof m.byScore === 'boolean'));
+}
 
 export function isReviewsSeen(m: unknown): m is ReviewsSeenMessage {
   return obj(m) && m.type === 'rd:reviews-seen' && typeof m.asin === 'string' && Array.isArray(m.reviews) && obj(m.view);

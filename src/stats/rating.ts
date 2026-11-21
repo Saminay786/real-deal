@@ -114,3 +114,54 @@ export function ratingInterval(
       (low ? ` Fewer than ${RATING_LOW_N} ratings, so treat this as rough.` : ''),
   };
 }
+
+// ---------------------------------------------------------------- C1: ranking score (v2)
+
+/**
+ * Prior mean m, per-review SD σ and prior weight C for the ranking score, estimated
+ * from 6,044 amazon.com beauty products in research/01_changepoint_validation.ipynb
+ * (DECISIONS #48). Placeholders were 3.9 / 1.2 / 20.
+ */
+export const RANK_PRIOR_MEAN = 3.98;
+export const RANK_REVIEW_SD = 1.34;
+export const RANK_PRIOR_WEIGHT = 5;
+/** One-sided 95% lower bound. */
+export const RANK_Z = 1.645;
+
+export interface RankingScore {
+  /** Cautious estimate of the true rating: shrunk mean − 1.645 · SE. */
+  score: number;
+  /** (C·m + N·r̄) / (C + N) */
+  shrunk: number;
+  /** σ / √(C + N) */
+  se: number;
+}
+
+/**
+ * Score for ordering search results:
+ *   r̃ = (C·m + N·r̄) / (C + N),  SE = σ / √(C + N),  score = r̃ − 1.645·SE.
+ * Few ratings pull r̃ toward m and widen SE, so 4.6★ from 9 ratings ranks below
+ * 4.3★ from 2,000. Products without a rating get no score.
+ */
+export function rankingScore(
+  rating: number | null,
+  n: number | null,
+  c: { m?: number; sigma?: number; C?: number } = {},
+): StatResult<RankingScore> {
+  if (rating === null || n === null || n <= 0) {
+    return { value: null, dataSufficiency: 'insufficient', explanation: 'No ratings yet.' };
+  }
+  const m = c.m ?? RANK_PRIOR_MEAN;
+  const sigma = c.sigma ?? RANK_REVIEW_SD;
+  const C = c.C ?? RANK_PRIOR_WEIGHT;
+  const shrunk = (C * m + n * rating) / (C + n);
+  const se = sigma / Math.sqrt(C + n);
+  const score = shrunk - RANK_Z * se;
+  return {
+    value: { score, shrunk, se },
+    dataSufficiency: n < RATING_LOW_N ? 'low' : 'ok',
+    explanation:
+      `Cautious estimate of the true rating from ${rating.toFixed(1)}★ and ${n.toLocaleString('en-IN')} ratings: ` +
+      `${score.toFixed(2)}. Fewer ratings mean a lower, more cautious score.`,
+  };
+}

@@ -9,6 +9,7 @@ It runs **entirely in your browser**: no server, no account, no network calls.
 |---|---|
 | **Rating range** next to the stars: `likely 3.8–4.7 · low data` | How sure you can be about the average. 4.4★ from 22 ratings could be 3.8 or 4.7. From 11,000 ratings it is pinned down. |
 | **Themes over time** in a side panel | What reviewers talk about ("Missing pieces in the box", "Colour fading after wash") and whether each topic's share of reviews **really changed** or **could just be luck**. |
+| **Search results score** | A cautious rating on every search result (4.6★ from 9 ratings ranks below 4.3★ from 2,000), and a switch to sort the current page by it. |
 | **Review pattern check** | Unusually busy periods of reviews that were also unusually positive or unverified: *signals* worth reading about, never "fake". |
 
 **Validated on real data.** On 50 products from the McAuley Lab Amazon Reviews 2023 dataset, the method
@@ -65,6 +66,7 @@ flowchart TD
 | **Stratified test (CMH)** | Is the change real, or caused by which star filters were used? | Cochran–Mantel–Haenszel statistic, shuffles within star levels | [`stats/changepoint.ts`](src/stats/changepoint.ts) |
 | **Multiple testing** | With many themes, which changes survive? | Benjamini–Hochberg false-discovery rate, q ≤ 0.10 | [`stats/fdr.ts`](src/stats/fdr.ts) |
 | **Confidence intervals** | How big is the change? | Wilson (per month), Newcombe (difference), Agresti–Caffo (star-adjusted) | [`stats/intervals.ts`](src/stats/intervals.ts) |
+| **Shrinkage + lower bound** | Which search result's rating can you trust most? | (C·m + N·r̄)/(C+N) − 1.645·σ/√(C+N), constants estimated from data | [`stats/rating.ts`](src/stats/rating.ts), [`content/amazon/search.ts`](src/content/amazon/search.ts) |
 | **Burst detection** | Was there an unusual flood of reviews? | Poisson tail of the busiest 14-day window, corrected for windows searched | [`stats/burst.ts`](src/stats/burst.ts) |
 | **LLM output validation** | Can the AI summary be trusted? | Every number must appear in the test results; no change claims when none is significant | [`ai/label.ts`](src/ai/label.ts) |
 
@@ -206,7 +208,6 @@ uses keyword labels and a template summary. See Google's
 
 ## Roadmap
 
-- **v2:** a score badge on search results using the data-driven ranking constants, and reordering the current page.
 - **v3:** a multilingual model for Hindi/Hinglish; splitting merged themes; Flipkart.
 
 ## Project layout

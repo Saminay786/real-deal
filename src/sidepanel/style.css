@@ -383,6 +383,15 @@ button.link.underline {
   margin-bottom: 4px;
 }
 
+.toplist {
+  padding-left: 18px;
+  margin: 4px 0 8px;
+}
+
+.toplist li {
+  margin-bottom: 3px;
+}
+
 .opt {
   display: flex;
   gap: 10px;

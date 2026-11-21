@@ -10,6 +10,8 @@ const NAMES = [
   'reviews-a-p1',
   'reviews-a-p2',
   'reviews-b-p1',
+  'search-a',
+  'search-b',
 ] as const;
 
 async function savePage(name: string): Promise<void> {

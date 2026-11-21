@@ -5,6 +5,8 @@ import { burstReviews, type BurstSelection } from '../collect/burstInput';
 import { detectBurst, type Burst } from '../stats/burst';
 import type { StatResult } from '../types';
 import { BurstCard } from './BurstCard';
+import { SearchCard } from './SearchCard';
+import type { SearchCommand, SearchInfo } from '../messages';
 import { summarizeCollection, type CollectionSummary } from '../collect/summary';
 import {
   PLAN,
@@ -81,6 +83,27 @@ function App() {
   const [load, setLoad] = useState<LoadState>(IDLE);
   const [themes, setThemes] = useState<{ asin: string; state: ThemesState } | null>(null);
   const [ai, setAi] = useState<{ asin: string; result: AiResult; state: AiState } | null>(null);
+  const [search, setSearch] = useState<{ url: string | null; info: SearchInfo | null; error: string | null }>({
+    url: null,
+    info: null,
+    error: null,
+  });
+
+  /** Asks the search page's content script for scored results (or to sort / restore them). */
+  const searchCmd = async (cmd: SearchCommand) => {
+    const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (t?.id === undefined) return;
+    try {
+      const info = (await chrome.tabs.sendMessage(t.id, cmd)) as SearchInfo;
+      setSearch({ url: t.url ?? null, info, error: null });
+    } catch {
+      setSearch({ url: t.url ?? null, info: null, error: 'This tab was opened before Real Deal was updated. Press F5 on it.' });
+    }
+  };
+
+  useEffect(() => {
+    if (tab.type === 'search' && tab.url !== search.url) void searchCmd({ type: 'rd:search-info' });
+  }, [tab.type, tab.url]);
 
   /** Labels + summary with Gemini Nano. Must run from a click if the model still needs downloading. */
   const runNano = async (asin: string, analysis: ThemeAnalysis) => {
@@ -246,11 +269,14 @@ function App() {
     }
   })();
 
+  const onSearchPage = tab.type === 'search';
+
   return (
     <main>
       <h1>Real Deal</h1>
-      <NextStep step={step} error={load.error} />
-      {tab.asin && summary && (
+      <NextStep step={onSearchPage ? { kind: 'search' } : step} error={onSearchPage ? null : load.error} />
+      {onSearchPage && <SearchCard info={search.info} error={search.error} onSort={(by) => void searchCmd({ type: 'rd:search-sort', byScore: by })} />}
+      {!onSearchPage && tab.asin && summary && (
         <>
           {ai && ai.asin === tab.asin && themes?.state.kind === 'done' && (
             <SummaryCard
