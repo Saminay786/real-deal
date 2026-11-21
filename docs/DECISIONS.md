@@ -193,3 +193,38 @@ Newest at the bottom. Each entry: **Difficulty / observation → Decision → Ev
 - **Implication for collecting.** For trend questions, prefer unfiltered views
   (Most recent and Top reviews, all stars). Star filters add history at the cost
   of this blind spot.
+
+## 2026-11-21 · First real run in Chrome
+
+### 20. Phase 4 works in the browser, offline. What the real data showed
+- **Run.** Zulaxy wall hooks (B0CCM8L54V): 106 India reviews (Most recent, all
+  stars, unfiltered → plain test), 202 English sentences, 1 Hinglish review
+  excluded, 6 themes, silhouette 0.13.
+- **Themes found** (match the visible reviews): paint/wall ("peels the paint",
+  "only for tiles not for painted walls"), wrong quantity ("ordered 20, received
+  19"), weight/hold, poor quality, value for money, photo frames.
+- **Result.** No theme significant after BH. The closest was "received, ordered,
+  qty" at 5% → 18% from Oct 2026, p = 0.093, q = 0.393. This is consistent with the
+  power table: 106 reviews over 5 months only detects roughly a tripling.
+
+**Observation A: the displayed difference CI is too optimistic.** For the
+quantity theme the Newcombe interval was [+1%, +27%], excluding 0, while the
+permutation p was 0.093. The interval is computed *after* the scan picked the
+best change month, so it ignores that selection (post-selection inference); the
+permutation p-value accounts for it.
+- **Decision (for Phase 6).** Show the before → after interval only for themes
+  that are significant after BH, labelled "not adjusted for choosing the month".
+  The p/q values remain the evidence.
+
+**Observation B: themes overlap** (silhouette 0.13 on a −1…1 scale). This is
+expected for short, similar product reviews: many sentences mention several
+topics ("weak glue, fell with the photo frame").
+- **Decision.** Keep k by silhouette for now. Revisit in the research notebook by
+  comparing labels against a manual reading of the sentences.
+
+**Observation C: clusters are topical, not sentiment-split.** "money, waste,
+useful" mixes "waste of money" with "very useful". MiniLM embeds topic more
+than polarity.
+- **Decision.** Accept for themes, since the question is "what are people talking
+  about". Phase 5 (Gemini Nano labels) can name a cluster's dominant sentiment
+  from its exemplars. A per-theme star mix could also be shown in Phase 6.

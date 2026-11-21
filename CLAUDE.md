@@ -285,8 +285,9 @@ Results must be identical across runs for the same input.
   trap 0.890 → 0.064, power at n = 300 for 0.10 → 0.25: 0.850 / 0.874
 - [x] Phase 4 — themes (sentences, embeddings, clustering, c-TF-IDF) wired end-to-end:
   English MiniLM in a worker (offline, 48.8 MB build), Hinglish excluded,
-  conditional star stratification, debug list in the side panel. Not yet
-  verified in Chrome.
+  conditional star stratification, debug list in the side panel. Verified in
+  Chrome 2026-11-21 on the hooks (106 reviews → 6 sensible themes, none
+  significant; DECISIONS #20).
 - [ ] Phase 5 — Gemini Nano labels + narrative
 - [ ] Phase 6 — trends UI
 - [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)
