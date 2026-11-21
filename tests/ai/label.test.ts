@@ -175,7 +175,7 @@ describe('templateSummary', () => {
   it('says "no clear change" and names the most discussed themes otherwise', () => {
     expect(templateSummary(buildNarrativeInput(analysis(false)))).toBe(
       'No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews). ' +
-        'Most discussed: paint, wall, walls (33%), received, ordered, qty (10%). Based only on the reviews you viewed.',
+        'Most discussed: "paint, wall, walls" (33%) and "received, ordered, qty" (10%). Based only on the reviews you viewed.',
     );
   });
 

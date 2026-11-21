@@ -274,7 +274,9 @@ export function templateSummary(input: NarrativeInput): string {
     parts.push(`No theme changed clearly from ${input.period} (${input.reviews} reviews).`);
     const top = [...input.themes].sort((a, b) => b.mentionedPct - a.mentionedPct).slice(0, 3);
     if (top.length > 0) {
-      parts.push(`Most discussed: ${top.map((t) => `${t.label} (${t.mentionedPct}%)`).join(', ')}.`);
+      const items = top.map((t) => `"${t.label}" (${t.mentionedPct}%)`);
+      const list = items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0];
+      parts.push(`Most discussed: ${list}.`);
     }
   }
   parts.push('Based only on the reviews you viewed.');

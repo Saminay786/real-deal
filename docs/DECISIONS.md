@@ -270,3 +270,22 @@ than polarity.
   "25%" rejects the summary in favour of the template. A crashed model leaves keyword labels
   and the template. The template always passes its own validation.
 - **Not yet verified on real Nano in Chrome.**
+
+### 22. Second real product (baby pyjamas, B0HFV4DG93): three display problems
+- **Run.** 100 reviews collected with star filters, so the analysis was stratified
+  (the panel said so). 233 sentences, 8 themes, silhouette 0.14, none significant.
+  Gemini Nano reported *downloadable* and the download started from the button.
+  The device supports Nano.
+- **A. Template summary unreadable.** "Most discussed: soft, fabric, material (41%),
+  quality, good, pants (37%), …" put comma-separated labels inside a comma-separated
+  list. **Decision:** quote each label and join with "and".
+- **B. Brand names in keyword labels.** "worth, lush, plush" is the brand "Lush
+  Plush". **Decision (later):** add the product's brand/title words as extra stop
+  words for c-TF-IDF (needs the title stored from the product page). Nano labels
+  hide it meanwhile.
+- **C. Inconsistent numbers when stratified.** For "set, size, pack" the panel showed
+  pooled shares 8% → 5% (−3 points) next to a star-adjusted Δ −8% [−13%, −2%].
+  The two measures differ when the star mix changes, and showing them side by side
+  is confusing. The interval again excludes 0 while p = 0.26 (entry 20).
+  **Decision (Phase 6):** when stratified, show star-adjusted before/after shares
+  consistent with Δ, and show intervals only for significant themes.
