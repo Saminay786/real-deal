@@ -191,8 +191,9 @@ Results must be identical across runs for the same input.
 - Shrunk mean `r̃ = (C·m + N·r̄) / (C + N)`, `SE = σ / √(C + N)`,
   score = `r̃ − 1.645·SE` (one-sided 95% lower bound).
 - Constants `m` (prior mean), `σ` (per-review rating SD), `C` (prior weight)
-  live in `rating.ts`; defaults `m = 3.9, σ = 1.2, C = 20` until estimated in
-  `research/`.
+  live in `rating.ts`; defaults `m = 3.98, σ = 1.34, C = 5`, estimated in
+  `research/01_changepoint_validation.ipynb` from 6,044 amazon.com beauty
+  products (DECISIONS #48); revisit with amazon.in-like data if available.
 - Sponsored results are scored but labelled.
 
 ## UI
@@ -302,5 +303,8 @@ Results must be identical across runs for the same input.
 - [x] Phase 7 — release: README, MIT LICENSE, icons, options page (badge,
   debug), version 0.1.0; zero-network guaranteed by CSP connect-src 'self' plus
   `npm run audit:network` (passes). 197 tests. (DECISIONS #46)
+- [x] Research notebook — validation on Amazon Reviews 2023 (All_Beauty): honest
+  FPR, power, real detected changes read by hand, ranking constants, stability
+  (DECISIONS #48)
 ### v2
 - [ ] Phase 8 — search re-ranking (pipeline C)
