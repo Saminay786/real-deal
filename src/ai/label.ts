@@ -300,6 +300,13 @@ export function parsePlainSummary(raw: string): string | null {
   return t.length > 0 ? t : null;
 }
 
+/** Phrases that state "no change" in a summary. */
+export const SAYS_NO_CHANGE = /\bno (clear|significant|notable|real)?\s*change|\bno theme changed|\bdid not change|\bunchanged\b|\bstable\b|\bremained (steady|similar|the same)/i;
+
+export function noChangeSentence(input: NarrativeInput): string {
+  return `No theme changed clearly from ${input.period} (${input.reviews} reviews).`;
+}
+
 /** Deterministic fallback summary (≤ 3 sentences) from the same facts. */
 export function templateSummary(input: NarrativeInput): string {
   const changed = input.themes.filter((t) => t.changed);
@@ -310,7 +317,7 @@ export function templateSummary(input: NarrativeInput): string {
       parts.push(`Mentions of "${t.label}" ${dir} from ${t.beforePct}% to ${t.afterPct}% of reviews from ${t.from}.`);
     }
   } else {
-    parts.push(`No theme changed clearly from ${input.period} (${input.reviews} reviews).`);
+    parts.push(noChangeSentence(input));
     const top = [...input.themes].sort((a, b) => b.mentionedPct - a.mentionedPct).slice(0, 3);
     if (top.length > 0) {
       const items = top.map((t) => `"${t.label}" (${t.mentionedPct}%)`);
@@ -402,13 +409,24 @@ export async function enrichWithNano(
       };
     }
   }
-  const parsed = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  let parsed = format === 'json' ? parseSummary(raw) : parsePlainSummary(raw);
+  // The main finding must be stated. If nothing changed and the AI did not say so,
+  // lead with the factual sentence and keep the AI's first two (DECISIONS #29).
+  let ledWithFinding = false;
+  if (parsed !== null && !input.themes.some((x) => x.changed) && !SAYS_NO_CHANGE.test(parsed)) {
+    parsed = `${noChangeSentence(input)} ${firstSentences(parsed, 2).text}`;
+    ledWithFinding = true;
+  }
   // Over-long answers are trimmed to their first 3 sentences before validation:
   // cutting can only remove claims, never add an unverified number.
   const { text: summary, trimmed } = parsed === null ? { text: null, trimmed: false } : firstSentences(parsed, 3);
   const problem = summary === null ? `not valid ${format === 'json' ? 'JSON' : 'text'}` : summaryProblem(summary, input);
   if (summary !== null && problem === null) {
-    const notes = [jsonError ? 'plain-text fallback' : null, trimmed ? 'trimmed to 3 sentences' : null].filter(Boolean);
+    const notes = [
+      jsonError ? 'plain-text fallback' : null,
+      ledWithFinding ? 'first sentence added from the test results' : null,
+      trimmed ? 'trimmed to 3 sentences' : null,
+    ].filter(Boolean);
     return { themes, summary, summarySource: 'nano', labelsApplied, ...(notes.length ? { note: notes.join(', ') } : {}) };
   }
   const rejected: AiResult['rejected'] = {

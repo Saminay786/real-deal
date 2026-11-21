@@ -42,7 +42,8 @@ cause for each of them.)
 | 24 | Junk theme "video, images, com"; themes change between runs | The stored script also had URLs; splitting sentences at dots cut them into word-like fragments. Clustering short texts has no strongly preferred k, so small input changes flip k. |
 | 25–26 | Nano kErrorUnknown | An intermittent model-side failure in JSON-constrained decoding of a long free-text field. A shared session was ruled out (#25 did not fix it). |
 | 27 | 4-sentence summary | Nano does not reliably obey length instructions. |
-| 28 | AI labels on the wrong themes | See entry 28. |
+| 28 | AI labels on the wrong themes; "Over 100" | Themes were numbered from 0 and Nano answered from 1, while the checks only tested that ids were *valid*, not *right*. Number checks looked at digits, not qualifiers. |
+| 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
 
@@ -468,3 +469,28 @@ than polarity.
   loaded." is filtered. Still to confirm on real Nano.
 - **Lesson.** Validate *meaning*, not just *format*: whenever the model refers
   back to an item, make it quote something checkable about that item.
+
+### 29. Phase 5 verified on real Nano; the summary left out the main finding
+- **What happened.** After #28, on the pyjamas (100 reviews, 216 sentences,
+  7 themes), every AI name matched its examples: "Price/Value" ↔ "Worth the money",
+  "Color/Wash Issues" (mixed) ↔ "colour faded" / "No colour fading", "Size/Returns"
+  (negative) ↔ "GO FOR 1 SIZE BIGGER". The AI summary passed every check and was
+  shown. But it never said that **no theme changed clearly**, which is the main
+  result: "There were 100 reviews … Product enjoyment and Fabric Comfort were
+  frequently mentioned with positive sentiment. Quality Assessment was also
+  commonly mentioned…"
+- **Why it happened.** The prompt *asked* for "say there was no clear change",
+  but small models follow instructions only partly. Our validation only checked
+  what the summary must *not* say (invented numbers, false change claims, "fake"),
+  never what it *must* say.
+- **Why it wasn't caught earlier.** Every earlier real summary failed for other
+  reasons (crash, 4 sentences, wrong labels), so this was the first accepted one
+  to read. The fake-Nano test summaries always included the finding.
+- **Decision.** If no theme changed and the AI's text does not state it (phrases
+  like "no clear/significant change", "did not change", "unchanged", "stable"),
+  lead with the factual sentence "No theme changed clearly from {period} ({n}
+  reviews)." and keep the AI's first two sentences. Note "first sentence added from
+  the test results". Summaries that already say it are left as written.
+- **Evidence (tests).** The real Nano wording is reproduced and gets the
+  finding prepended. A summary that already says "No theme changed
+  significantly…" is unchanged.

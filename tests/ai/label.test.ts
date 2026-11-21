@@ -316,6 +316,29 @@ describe('enrichWithNano', () => {
     expect(r.rejected?.reason).toBe('number 50 is not in the test results');
   });
 
+  it('leads with "no clear change" when nothing changed and the AI omitted it (real Nano, DECISIONS #29)', async () => {
+    // Accepted on real Nano, but silent about the main finding:
+    const ai =
+      'There were 106 reviews for this product from Jul 2026 to Nov 2026. Paint damage was frequently mentioned. ' +
+      'Missing pieces were also commonly mentioned.';
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: ai })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summarySource).toBe('nano');
+    expect(r.summary).toBe(
+      'No theme changed clearly from Jul 2026 to Nov 2026 (106 reviews). ' +
+        'There were 106 reviews for this product from Jul 2026 to Nov 2026. Paint damage was frequently mentioned.',
+    );
+    expect(r.note).toBe('first sentence added from the test results');
+  });
+
+  it('leaves an AI summary alone when it already states there was no clear change', async () => {
+    const ai = 'No theme changed significantly from Jul 2026 to Nov 2026. Paint damage was mentioned most often.';
+    const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: ai })]);
+    const r = await enrichWithNano(analysis(false), n.make);
+    expect(r.summary).toBe(ai);
+    expect(r.note).toBeUndefined();
+  });
+
   it('explains a rejected "fell" when nothing changed', async () => {
     const n = fakeNano(['{"themes":[]}', JSON.stringify({ summary: 'Value for Money fell from 33% to 33%.' })]);
     const r = await enrichWithNano(analysis(false), n.make);

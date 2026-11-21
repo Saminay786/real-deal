@@ -292,7 +292,8 @@ Results must be identical across runs for the same input.
   significant; DECISIONS #20).
 - [x] Phase 5 — Gemini Nano labels + narrative: schema-constrained labels with
   sentiment, summary from facts JSON with number validation, template
-  fallback, download flow; 155 tests pass. Not yet verified on real Nano.
+  fallback, download flow. Verified on real Nano 2026-11-21 (pyjamas): labels
+  match examples, summary accepted (DECISIONS #21–#29). 170 tests.
 - [ ] Phase 6 — trends UI
 - [ ] Phase 7 — release (README, LICENSE, options, icon, network audit)
 ### v2
