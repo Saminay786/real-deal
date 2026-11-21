@@ -145,7 +145,7 @@ McAuley Lab Amazon Reviews 2023, All_Beauty, 50 products with years of reviews):
 - **Data-driven constants** for the planned ranking score: prior mean 3.98★, per-review SD 1.34, prior
   weight ≈ 5 ratings.
 
-Every problem met along the way (49 so far), *why* it happened and why it wasn't caught earlier, is
+Every problem met along the way (53 so far), *why* it happened and why it wasn't caught earlier, is
 logged in **[docs/DECISIONS.md](docs/DECISIONS.md)**.
 
 ---
