@@ -8,6 +8,15 @@ const month = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1] ?? '?'} ${
 const pct = (x: number) => Math.round(100 * x);
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`;
 
+/** "from a 6-point drop to a 24-point rise", "from a 3-point rise to a 20-point rise", … */
+export function rangeWords(lo: number, hi: number): string {
+  // "an" before numbers said with a vowel sound: 8, 11, 18, 80–89.
+  const article = (n: number) => (/^(8|11|18)(\d*)$/.test(String(n)) && !/^1[1-8]\d/.test(String(n)) ? 'an' : 'a');
+  const word = (v: number) =>
+    v === 0 ? 'no change' : `${article(Math.abs(v))} ${Math.abs(v)}-point ${v < 0 ? 'drop' : 'rise'}`;
+  return `from ${word(lo)} to ${word(hi)}`;
+}
+
 const W = 260;
 const LABEL_W = 92;
 const BAR_W = W - LABEL_W - 40;
@@ -53,16 +62,21 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
         <text x={x(0)} y="88" class="tc-tick" text-anchor="middle">0 = no change</text>
       </svg>
       <p class="small tc-caption">
-        Mentions went from <strong>{before}%</strong> to <strong>{after}%</strong> of reviews: a change of{' '}
-        <strong>{signed(d)} points</strong>. The real change is likely between {signed(lo)} and {signed(hi)} points.{' '}
+        Mentions went from <strong>{before}%</strong> to <strong>{after}%</strong> of reviews ({signed(d)} points). The
+        true change could be anything {rangeWords(lo, hi)}.{' '}
         {s.significant ? (
-          <span class="ok">The range stays clear of 0 and the test confirms it: a real change.</span>
+          <span class="ok">
+            <strong>Real change.</strong> A jump this big is very unlikely to be luck.
+          </span>
         ) : crossesZero ? (
-          <span class="muted">The range includes 0, so this could be chance.</span>
+          <span class="muted">
+            <strong>Could just be luck.</strong> With only {s.before.n} reviews before and {s.after.n} after, a gap this
+            size often shows up even when nothing really changed.
+          </span>
         ) : (
           <span class="muted">
-            The range misses 0, but it ignores that the tool picked the most dramatic month; the stricter test (p, q)
-            says it could still be chance.
+            <strong>Looks like a change, but not proven.</strong> We checked every month to find the biggest jump, and
+            jumps this big still turn up by luck.
           </span>
         )}
       </p>

@@ -50,6 +50,7 @@ cause for each of them.)
 | 34 | "Done" hid Load on new filter pages | Next-step rules checked "analysed?" before "page unfinished?", and tests never covered going back to collecting after an analysis. |
 | 35 | Stratified a complete collection; one-level Δ shown as overall; unexplained p/q/Δ | The stratify rule ignored completeness. The single-stratum fallback treated "one of five qualifies" like "only one exists". The debug UI was written for developers. |
 | 37 | "Range of what?" | Five statistics in one line of notation. The relationships (pooled shares → difference → range → 0) were never drawn, and the format was designed by people who already read CIs. |
+| 38 | Verdict sentence still jargon | It restated the statistics (range, 0, chance) instead of the conclusion and its reason (too few reviews). No non-statistician had read it. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -744,3 +745,22 @@ than polarity.
   p/q line becomes a small "Test:" note. The legend describes the picture. This
   starts the Phase 6 work early.
 - **Evidence.** Builds and renders the same data. Still to see in Chrome with the user.
+
+### 38. "The range includes 0, so this could be chance" was still jargon
+- **What happened.** The user asked for the verdict sentence in layman's terms.
+- **Why it happened.** "Range", "includes 0" and "chance" assume the reader already
+  knows what a confidence interval is and why 0 matters. The sentence restated the
+  statistics instead of the conclusion, and it did not say *why* luck is plausible
+  (too few reviews).
+- **Why it wasn't caught earlier.** #37 replaced notation with a picture but kept the
+  verdict in statistical vocabulary. Nobody outside statistics had read it.
+- **Decision.** Lead with the verdict in everyday words and give the reason in terms
+  of review counts:
+  - range covers 0: **"Could just be luck. With only {before} reviews before and
+    {after} after, a gap this size often shows up even when nothing really changed."**
+  - range misses 0 but the test says no: **"Looks like a change, but not proven. We
+    checked every month to find the biggest jump, and jumps this big still turn up
+    by luck."**
+  - significant: **"Real change. A jump this big is very unlikely to be luck."**
+  - The range itself reads "The true change could be anything from a 6-point drop
+    to a 24-point rise" (`rangeWords`, tested, including "an 8-/11-/18-point").
