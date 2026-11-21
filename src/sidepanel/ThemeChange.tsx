@@ -41,7 +41,7 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
 
   return (
     <div class="tchange">
-      <svg viewBox={`0 0 ${W} 92`} width="100%" role="img" aria-label={`Before ${before}%, after ${after}%, change ${signed(d)} points, likely between ${signed(lo)} and ${signed(hi)}`}>
+      <svg viewBox={`0 0 ${W} 100`} width="100%" role="img" aria-label={`Before ${before}%, after ${after}%, change ${signed(d)} points, likely between ${signed(lo)} and ${signed(hi)}`}>
         {/* before / after bars */}
         <text x="0" y="13" class="tc-lab">Before {when}</text>
         <rect x={LABEL_W} y="4" width={bw(before)} height="11" rx="2" class="tc-bar before" />
@@ -51,16 +51,22 @@ export function ThemeChange({ s }: { s: ShiftResult }) {
         <rect x={LABEL_W} y="22" width={bw(after)} height="11" rx="2" class="tc-bar after" />
         <text x={LABEL_W + bw(after) + 4} y="31" class="tc-val">{after}%</text>
 
-        {/* change: range band, zero line, dot */}
+        {/* change: range band, zero line, dot (labelled, DECISIONS #39) */}
         <text x="0" y="58" class="tc-lab">Change</text>
+        <text x={LABEL_W} y="42" class="tc-tick">← fewer mentions</text>
+        <text x={W - 8} y="42" class="tc-tick" text-anchor="end">more mentions →</text>
         <line x1={LABEL_W} x2={W - 8} y1="54" y2="54" class="tc-axis" />
         <rect x={x(lo)} y="49" width={Math.max(2, x(hi) - x(lo))} height="10" rx="5" style={{ fill: tone, opacity: 0.25 }} />
-        <line x1={x(0)} x2={x(0)} y1="43" y2="65" class="tc-zero" />
+        <line x1={x(0)} x2={x(0)} y1="45" y2="63" class="tc-zero" />
         <circle cx={x(d)} cy="54" r="4.5" style={{ fill: tone }} />
-        <text x={x(lo)} y="76" class="tc-tick" text-anchor="middle">{signed(lo)}</text>
-        <text x={x(hi)} y="76" class="tc-tick" text-anchor="middle">{signed(hi)}</text>
-        <text x={x(0)} y="88" class="tc-tick" text-anchor="middle">0 = no change</text>
+        <text x={x(d)} y="72" class="tc-dot" text-anchor="middle">{signed(d)} seen</text>
+        <text x={x(lo)} y="84" class="tc-tick" text-anchor="middle">{signed(lo)}</text>
+        <text x={x(hi)} y="84" class="tc-tick" text-anchor="middle">{signed(hi)}</text>
+        <text x={x(0)} y="96" class="tc-tick" text-anchor="middle">┆ 0 = no change</text>
       </svg>
+      <p class="small muted tc-key">
+        ● dot = change seen in these reviews · shaded band = where the true change could be · ┆ dashed line = no change
+      </p>
       <p class="small tc-caption">
         Mentions went from <strong>{before}%</strong> to <strong>{after}%</strong> of reviews ({signed(d)} points). The
         true change could be anything {rangeWords(lo, hi)}.{' '}

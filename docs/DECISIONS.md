@@ -51,6 +51,7 @@ cause for each of them.)
 | 35 | Stratified a complete collection; one-level Δ shown as overall; unexplained p/q/Δ | The stratify rule ignored completeness. The single-stratum fallback treated "one of five qualifies" like "only one exists". The debug UI was written for developers. |
 | 37 | "Range of what?" | Five statistics in one line of notation. The relationships (pooled shares → difference → range → 0) were never drawn, and the format was designed by people who already read CIs. |
 | 38 | Verdict sentence still jargon | It restated the statistics (range, 0, chance) instead of the conclusion and its reason (too few reviews). No non-statistician had read it. |
+| 39 | "What's the dashed line and the dot?" | Chart marks were explained only in a collapsed legend, with no value on the dot and no direction labels. It was designed by people who already knew the meanings. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -764,3 +765,19 @@ than polarity.
   - significant: **"Real change. A jump this big is very unlikely to be luck."**
   - The range itself reads "The true change could be anything from a 6-point drop
     to a 24-point rise" (`rangeWords`, tested, including "an 8-/11-/18-point").
+
+### 39. The change graph's marks were unlabelled
+- **What happened.** Seeing the #37 graph in Chrome, the user asked "what's the
+  dash line and what's the point over that change graph?"
+- **Why it happened.** The dot had no value on it, the dashed line was labelled only
+  far below it ("0 = no change"), and nothing said which direction meant more or
+  fewer mentions. The legend explaining them sits in a collapsed box.
+- **Why it wasn't caught earlier.** The graph was designed from a sketch in which
+  we already knew what each mark meant, and it was not looked at cold before
+  shipping.
+- **Decision.** Label directly on the graph: the dot shows its value ("−9 seen"),
+  the axis says "← fewer mentions" / "more mentions →", the zero mark repeats the
+  dashed symbol, and a one-line key sits under each graph: "● dot = change seen in
+  these reviews · shaded band = where the true change could be · ┆ dashed line =
+  no change". General rule: **every mark on a chart is labelled where it appears**,
+  not only in a legend.

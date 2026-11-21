@@ -197,6 +197,16 @@ button.link.underline {
   margin: 2px 0 4px;
 }
 
+.tchange .tc-dot {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.tc-key {
+  margin: 0 0 4px;
+  font-size: 11px;
+}
+
 .legend {
   margin: 6px 0 8px;
   padding: 6px 8px;
