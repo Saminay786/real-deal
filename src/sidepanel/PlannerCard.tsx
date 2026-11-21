@@ -1,22 +1,13 @@
-import {
-  PLAN,
-  nextView,
-  viewKey,
-  viewLabel,
-  viewStatus,
-  type ReviewView,
-  type ViewProgress,
-  type ViewStatus,
-} from '../collect/views';
+import { PLAN, viewKey, viewLabel, viewStatus, type ReviewView, type ViewProgress, type ViewStatus } from '../collect/views';
 import type { LoadEnd } from '../content/amazon/loader';
 
 const ICON: Record<ViewStatus, string> = { todo: '○', partial: '◐', capped: '✓', complete: '✓' };
 const NOTE: Record<ViewStatus, string> = { todo: '', partial: 'in progress', capped: 'Amazon limit', complete: 'all loaded' };
 
 const END_TEXT: Record<LoadEnd, string> = {
-  cap: 'Done: Amazon shows 100 per view. Open the next one.',
-  end: 'Done: every review in this view is loaded.',
-  stopped: 'Stopped.',
+  cap: 'Last load finished: Amazon shows 100 reviews per view.',
+  end: 'Last load finished: every review in this view is loaded.',
+  stopped: 'Last load was stopped.',
   captcha: 'Amazon showed a robot check. Solve it, wait a few minutes, then continue.',
   stuck: 'Amazon stopped adding reviews. Try again in a moment.',
 };
@@ -29,80 +20,50 @@ export interface LoadState {
 }
 
 interface Props {
-  current: ReviewView | null; // null when not on a review page
+  current: ReviewView | null;
   progress: ReadonlyMap<string, ViewProgress>;
   load: LoadState;
-  onLoad: () => void;
-  onStop: () => void;
   onOpen: (v: ReviewView) => void;
-  /** Every written review Amazon reports has been captured. */
-  allCollected: boolean;
 }
 
-export function PlannerCard({ current, progress, load, onLoad, onStop, onOpen, allCollected }: Props) {
-  const next = allCollected ? null : nextView(progress);
+/** All sort/filter views, folded away: the next-step bar at the top drives collection. */
+export function PlannerCard({ current, progress, load, onOpen }: Props) {
   const currentKey = current ? viewKey(current) : null;
-  const currentStatus = current ? viewStatus(progress.get(viewKey(current))) : null;
-  const canLoad = current !== null && currentStatus !== 'capped' && currentStatus !== 'complete';
+  const done = PLAN.filter((v) => {
+    const s = viewStatus(progress.get(viewKey(v)));
+    return s === 'capped' || s === 'complete';
+  }).length;
 
   return (
     <section class="card">
-      <h2>Collect more history</h2>
-      {current ? (
-        <div class="loadrow">
-          <div>
-            <div class="small muted">This view</div>
-            <strong>{viewLabel(current)}</strong>
-          </div>
-          {load.running ? (
-            <button type="button" onClick={onStop}>
-              Stop · {load.loaded}/100
-            </button>
-          ) : (
-            <button type="button" class="primary" onClick={onLoad} disabled={!canLoad}>
-              Load this view
-            </button>
-          )}
-        </div>
-      ) : (
-        <p class="small muted">Open the product's reviews to start.</p>
-      )}
-      {load.error && <p class="small warn">{load.error}</p>}
       {!load.running && load.end && <p class={`small ${load.end === 'captcha' ? 'warn' : 'muted'}`}>{END_TEXT[load.end]}</p>}
-
-      {next && (!current || viewKey(next) !== currentKey || !canLoad) && (
-        <p class="next">
-          Next: <strong>{viewLabel(next)}</strong>{' '}
-          <button type="button" onClick={() => onOpen(next)}>
-            Open
-          </button>
+      <details>
+        <summary>
+          All review filters ({done} of {PLAN.length} done)
+        </summary>
+        <p class="small muted">
+          Amazon shows at most 100 reviews per filter, so each one adds a different slice of history. Click a name to
+          open it.
         </p>
-      )}
-      {allCollected && <p class="ok small">✓ All reviews collected. No need to open more views.</p>}
-      {!next && !allCollected && <p class="ok small">All planned views done.</p>}
-
-      <ul class="plan">
-        {PLAN.map((v) => {
-          const key = viewKey(v);
-          const p = progress.get(key);
-          const st = viewStatus(p);
-          return (
-            <li key={key} class={key === currentKey ? 'current' : ''}>
-              <span class={`ico ${st}`}>{ICON[st]}</span>
-              <button type="button" class="link" onClick={() => onOpen(v)} title="Open this view">
-                {viewLabel(v)}
-              </button>
-              <span class="small muted">
-                {p && p.seen > 0 ? `${p.seen}` : ''} {NOTE[st]}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <p class="small muted">
-        "Load this view" clicks Amazon's "Show 10 more" for you every 2–4 seconds, up to Amazon's 100 per view. Keep
-        this tab in front; switching away stops it.
-      </p>
+        <ul class="plan">
+          {PLAN.map((v) => {
+            const key = viewKey(v);
+            const p = progress.get(key);
+            const st = viewStatus(p);
+            return (
+              <li key={key} class={key === currentKey ? 'current' : ''}>
+                <span class={`ico ${st}`}>{ICON[st]}</span>
+                <button type="button" class="link" onClick={() => onOpen(v)} title="Open this filter">
+                  {viewLabel(v)}
+                </button>
+                <span class="small muted">
+                  {p && p.seen > 0 ? `${p.seen}` : ''} {NOTE[st]}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
     </section>
   );
 }

@@ -84,8 +84,74 @@ h2 {
   font-weight: 400;
 }
 
-.card + .card {
+.card + .card,
+.nextstep + .card {
   margin-top: 10px;
+}
+
+/* Pinned "what to do now" bar (DECISIONS #33). */
+.nextstep {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
+  border: 2px solid #0969da;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+
+.nextstep .hint {
+  margin: 6px 0 8px;
+  font-size: 14px;
+}
+
+.nextstep progress {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+button.big {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+button.link.underline {
+  text-decoration: underline;
+  color: #0969da;
+}
+
+.steps {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.step {
+  flex: 1;
+  padding: 3px 4px;
+  border-radius: 4px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--card);
+}
+
+.step.now {
+  background: #0969da;
+  color: #fff;
+  font-weight: 600;
+}
+
+.step.done {
+  color: var(--ok);
+}
+
+details > summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .warn {

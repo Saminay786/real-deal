@@ -31,13 +31,12 @@ interface Props {
 export function ThemesCard({ state, aiThemes, canRun, onRun }: Props) {
   return (
     <section class="card">
-      <h2>Themes over time (debug)</h2>
-      {state.kind !== 'running' && (
+      <h2>Themes over time</h2>
+      {canRun && state.kind !== 'running' && (
         <p>
-          <button type="button" class="primary" disabled={!canRun} onClick={onRun}>
+          <button type="button" class="primary" onClick={onRun}>
             {state.kind === 'done' ? 'Re-run analysis' : 'Find themes'}
           </button>
-          {!canRun && <span class="small muted"> Collect the minimum reviews first.</span>}
         </p>
       )}
       {state.kind === 'running' && (

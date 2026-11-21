@@ -2,7 +2,19 @@ import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { getProductMeta, getReviews, getViewProgress, openStore, type Db } from '../collect/store';
 import { summarizeCollection, type CollectionSummary } from '../collect/summary';
-import { viewFromUrl, viewUrl, type ReviewView, type ViewProgress } from '../collect/views';
+import {
+  PLAN,
+  nextView,
+  viewFromUrl,
+  viewKey,
+  viewLabel,
+  viewStatus,
+  viewUrl,
+  type ReviewView,
+  type ViewProgress,
+} from '../collect/views';
+import { decideStep } from './decide';
+import { NextStep, type Step } from './NextStep';
 import { asinFromPath, pageType, type PageType } from '../content/page';
 import { isCollectionUpdated, isLoadProgress, type LoadViewCommand } from '../messages';
 import { CollectionCard } from './CollectionCard';
@@ -146,22 +158,83 @@ function App() {
   };
 
   const current = tab.type === 'reviews' && tab.url ? viewFromUrl(tab.url) : null;
+  const themesState: ThemesState = themes && themes.asin === tab.asin ? themes.state : { kind: 'idle' };
+
+  const runAnalysis = () => {
+    const asin = tab.asin;
+    if (!asin) return;
+    setAi(null);
+    runThemes(asin, (state) => {
+      setThemes({ asin, state });
+      if (state.kind === 'done') void startAi(asin, state.analysis);
+    });
+  };
+
+  // ---- the one next step shown at the top
+  const allCollected = !!summary && summary.totalOnAmazon !== null && summary.captured >= summary.totalOnAmazon;
+  const next = allCollected ? null : nextView(progress);
+  const decision = decideStep({
+    hasProduct: !!(tab.asin && summary),
+    onReviewsPage: tab.type === 'reviews',
+    minimumMet: summary?.minimumMet ?? false,
+    usableReviews: summary?.usable ?? 0,
+    reviewsNeeded: summary?.reviewsNeeded ?? 0,
+    monthsNeeded: summary?.monthsNeeded ?? 0,
+    currentView: current ? viewStatus(progress.get(viewKey(current))) : null,
+    nextViewLabel: next ? viewLabel(next) : null,
+    loadRunning: load.running,
+    themes: themesState.kind,
+  });
+  const openNext = () => open(next ?? PLAN[0] ?? { sort: 'recent', star: 'all', reviewer: 'all' });
+  const STAGE: Record<string, string> = {
+    'loading-model': 'loading the language model',
+    embedding: 'reading sentences',
+    clustering: 'finding themes and testing for changes',
+  };
+  const step: Step = (() => {
+    switch (decision.kind) {
+      case 'no-product':
+        return { kind: 'no-product' };
+      case 'open-reviews':
+        return { kind: 'open-reviews', reviewsNeeded: summary?.reviewsNeeded ?? 100, onOpen: openNext };
+      case 'load-view':
+        return { kind: 'load-view', viewLabel: current ? viewLabel(current) : '', onLoad: () => void send('rd:load-view') };
+      case 'loading':
+        return { kind: 'loading', loaded: load.loaded, onStop: () => void send('rd:stop-load') };
+      case 'open-next':
+        return {
+          kind: 'open-next',
+          nextLabel: next ? viewLabel(next) : '',
+          reviewsNeeded: summary?.reviewsNeeded ?? 0,
+          monthsNeeded: summary?.monthsNeeded ?? 0,
+          onOpen: openNext,
+        };
+      case 'find-themes':
+        return {
+          kind: 'find-themes',
+          reviews: summary?.usable ?? 0,
+          onRun: runAnalysis,
+          onMore: decision.more === 'load-here' ? () => void send('rd:load-view') : decision.more === 'open-next' ? openNext : null,
+          moreLabel:
+            decision.more === 'load-here'
+              ? 'Load reviews on this page'
+              : decision.more === 'open-next' && next
+                ? `Open: ${viewLabel(next)}`
+                : null,
+        };
+      case 'analysing':
+        return { kind: 'analysing', stage: themesState.kind === 'running' ? (STAGE[themesState.stage] ?? themesState.stage) : '' };
+      case 'done':
+        return { kind: 'done', onRerun: runAnalysis };
+    }
+  })();
 
   return (
     <main>
       <h1>Real Deal</h1>
-      {tab.asin && summary ? (
+      <NextStep step={step} error={load.error} />
+      {tab.asin && summary && (
         <>
-          <CollectionCard s={summary} onReviewsPage={tab.type === 'reviews'} />
-          <PlannerCard
-            current={current}
-            progress={progress}
-            load={load}
-            onLoad={() => void send('rd:load-view')}
-            onStop={() => void send('rd:stop-load')}
-            onOpen={open}
-            allCollected={summary.totalOnAmazon !== null && summary.captured >= summary.totalOnAmazon}
-          />
           {ai && ai.asin === tab.asin && themes?.state.kind === 'done' && (
             <SummaryCard
               result={ai.result}
@@ -172,23 +245,17 @@ function App() {
               }}
             />
           )}
-          <ThemesCard
-            state={themes && themes.asin === tab.asin ? themes.state : { kind: 'idle' }}
-            aiThemes={ai && ai.asin === tab.asin ? ai.result.themes : null}
-            canRun={summary.minimumMet && !(themes?.asin === tab.asin && themes.state.kind === 'running')}
-            onRun={() => {
-              const asin = tab.asin;
-              if (!asin) return;
-              setAi(null);
-              runThemes(asin, (state) => {
-                setThemes({ asin, state });
-                if (state.kind === 'done') void startAi(asin, state.analysis);
-              });
-            }}
-          />
+          {themesState.kind !== 'idle' && (
+            <ThemesCard
+              state={themesState}
+              aiThemes={ai && ai.asin === tab.asin ? ai.result.themes : null}
+              canRun={false}
+              onRun={runAnalysis}
+            />
+          )}
+          <CollectionCard s={summary} onReviewsPage={tab.type === 'reviews'} />
+          <PlannerCard current={current} progress={progress} load={load} onOpen={open} />
         </>
-      ) : (
-        <p class="muted">Open an amazon.in product or review page.</p>
       )}
       {import.meta.env.MODE === 'fixtures' && <FixtureSaver />}
     </main>

@@ -46,6 +46,7 @@ cause for each of them.)
 | 30 | Star-adjusted Δ −32% [−38%, −26%] for a 7-point change | Star-filtered views cover different time spans, leaving strata with 1–3 reviews on one side. Standardisation gave them full weight, and Wald variance is 0 at p̂ = 0 or 1. Unit tests only used balanced strata. |
 | 31 | Finding still missing; "13% of the time" | The no-change check ran before trimming, which then removed Nano's 4th-sentence finding. Number checks tested existence, not meaning or subject. |
 | 32 | Partial "no change", flipped sentiment, after-shares as totals | Checks covered forbidden content and number placement, not scope, sentiment or which number. Facts gave unchanged themes meaningless before/after numbers. |
+| 33 | Next action hidden | Each phase added its own card and button, nothing owned "what should the user do now?", and testing was done by people who knew where everything was. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -618,3 +619,29 @@ than polarity.
   while staying "within the facts". Rule-based validation catches known failure
   shapes, not meaning in general. The template summary remains the safe default,
   and the panel always says which one is shown.
+
+### 33. The next action was hidden
+- **What happened.** The user: "which button to click now is hidden". The side
+  panel stacked the collection card (with a long tip), a 17-row view list with
+  "Load this view" and "Open" inside it, then the summary and themes, each with
+  its own button. The one action that mattered at each moment could be several
+  screens down.
+- **Why it happened.** Each phase added its own card and button where it was
+  convenient to build. Nothing owned the question "what should the user do now?",
+  and the panel grew one card per feature, not around the user's task
+  (collect → analyse → read).
+- **Why it wasn't caught earlier.** Testing was done by us with knowledge of the
+  internals, so we knew where each button was. No step looked at the panel as a
+  first-time user would.
+- **Decision.**
+  1. A **next-step bar pinned to the top** with exactly one primary button and a
+     3-step progress strip (Collect reviews → Find themes → Read results). The
+     choice is a pure, tested function (`decideStep`): open reviews, load this
+     page, open the next filter (when Amazon's 100 is reached and more are
+     needed), find themes (with optional "collect more"), analysing, done.
+  2. **Results first.** Summary and themes come right under the bar, and the
+     collection details follow.
+  3. The 17 filters are **folded** into "All review filters (7 of 17 done)". The
+     duplicate buttons and the long tip are removed.
+- **Evidence.** 7 tests cover every branch of `decideStep`. Still to confirm in
+  Chrome with the user.

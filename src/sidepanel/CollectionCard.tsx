@@ -2,7 +2,7 @@ import { formatMonthSpan, MIN_MONTHS, MIN_REVIEWS, type CollectionSummary } from
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
-export function CollectionCard({ s, onReviewsPage }: { s: CollectionSummary; onReviewsPage: boolean }) {
+export function CollectionCard({ s }: { s: CollectionSummary; onReviewsPage?: boolean }) {
   const span = formatMonthSpan(s.earliest, s.latest);
   const needs: string[] = [];
   if (s.reviewsNeeded > 0) needs.push(`${fmt(s.reviewsNeeded)} more review${s.reviewsNeeded === 1 ? '' : 's'}`);
@@ -44,11 +44,6 @@ export function CollectionCard({ s, onReviewsPage }: { s: CollectionSummary; onR
           +{fmt(s.otherCountries)} from other countries, kept but not analysed.
         </p>
       )}
-      <p class="muted small">
-        {onReviewsPage
-          ? 'Tip: Amazon shows at most 100 reviews per sort or filter. For more, pick each star filter (5 star … 1 star) with "Most recent" and click "Show 10 more" until it stops. Reviews are merged without duplicates.'
-          : 'Open this product\'s reviews ("See more reviews") to collect them.'}
-      </p>
     </section>
   );
 }
