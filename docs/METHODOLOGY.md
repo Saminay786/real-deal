@@ -175,9 +175,13 @@ $$d_{\text{adj}} = \sum_s w_s\,(\hat p_{s,\text{after}} - \hat p_{s,\text{before
 
 $$\operatorname{Var}(d_{\text{adj}}) = \sum_s w_s^2 \left(\frac{\hat p_{s,a}(1-\hat p_{s,a})}{n_{s,a}} + \frac{\hat p_{s,b}(1-\hat p_{s,b})}{n_{s,b}}\right)$$
 
-with a Wald 95% interval. Star levels with no reviews on one side say nothing
-about change and are dropped. If only one level remains, the Newcombe interval
-is used.
+with a Wald 95% interval computed on **Agresti–Caffo** adjusted proportions
+$	ilde p = (k+1)/(n+2)$ (also used for the estimate), so a star level at 0% or
+100% never claims zero uncertainty. Only star levels with **at least 10 reviews on
+each side** of the change are used. Star-filtered views cover very different time
+spans, so some levels have only 1–3 reviews on one side, which previously
+dominated the estimate (DECISIONS #30). If only one level remains, the Newcombe
+interval is used.
 
 ## Change-point test
 

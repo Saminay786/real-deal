@@ -43,6 +43,7 @@ cause for each of them.)
 | 25–26 | Nano kErrorUnknown | An intermittent model-side failure in JSON-constrained decoding of a long free-text field. A shared session was ruled out (#25 did not fix it). |
 | 27 | 4-sentence summary | Nano does not reliably obey length instructions. |
 | 28 | AI labels on the wrong themes; "Over 100" | Themes were numbered from 0 and Nano answered from 1, while the checks only tested that ids were *valid*, not *right*. Number checks looked at digits, not qualifiers. |
+| 30 | Star-adjusted Δ −32% [−38%, −26%] for a 7-point change | Star-filtered views cover different time spans, leaving strata with 1–3 reviews on one side. Standardisation gave them full weight, and Wald variance is 0 at p̂ = 0 or 1. Unit tests only used balanced strata. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -494,3 +495,51 @@ than polarity.
 - **Evidence (tests).** The real Nano wording is reproduced and gets the
   finding prepended. A summary that already says "No theme changed
   significantly…" is unchanged.
+
+### 30. First large product (boAt Airdopes): star-adjusted Δ was nonsense
+- **Run.** boAt Airdopes, 503 reviews captured of 4,079 (12%), 15 months (Jun 2025
+  to Nov 2026), from 7 views (Most recent: all stars and each of 5★…1★; Top
+  reviews: all stars). 493 analysed (10 Hinglish excluded), 940 sentences, 8
+  themes, stratified. No theme significant. Closest: "Battery life concerns"
+  p = 0.053, "BoAt Airdopes problems" p = 0.094, "Price/value" p = 0.108 (all
+  q = 0.288).
+- **What happened.** The star-adjusted differences contradicted the shares beside
+  them, with impossibly narrow intervals: "17% → 10% · Δ −32% [−38%, −26%]",
+  "24% → 16% · Δ −30% [−37%, −23%]".
+- **Why it happened.** Each star-filtered view holds the *100 most recent* reviews
+  of that star level, so star levels cover very different time spans: frequent
+  5★ reviews only the last weeks, rare 1★ reviews a year or more. At a given
+  change month some star levels therefore had 1–3 reviews on one side.
+  1. Direct standardisation weighted them by their *total* size, so one review
+     could move the estimate by up to ±100 points.
+  2. The Wald variance p̂(1 − p̂)/n is **0 when p̂ = 0 or 1**, so those strata
+     claimed perfect certainty and the interval collapsed.
+  The p-values were unaffected: they come from permutations, not this formula.
+- **Why it wasn't caught earlier.** The unit tests used balanced strata (50 and
+  100 per side). The two earlier real products had few or no tiny strata. Nothing
+  checked that Δ was consistent with the shares shown next to it.
+- **Decision.** In `standardizedDiff`, use only strata with **≥ 10 reviews on each
+  side**, and **Agresti–Caffo** adjusted proportions p̃ = (k + 1)/(n + 2) for both
+  the estimate and the variance, so 0% or 100% never means zero uncertainty. With
+  one usable stratum, fall back to Newcombe.
+- **Evidence (tests).** A reproduction of the tiny-stratum case is now ignored,
+  with an honest width. All-0% / all-100% strata keep a non-zero width. The
+  hand-computed AC example gives d = 0.0641 [−0.0080, 0.1362].
+
+**Also from this run.**
+- **The summary misuses a number.** "Sound quality feedback was mentioned
+  positively 28% of the time." 28% is that theme's *after-change share*, not a
+  share of positive mentions. It passed because each number *exists* in the facts.
+  **Why:** checks verify membership, not what a number refers to. **Open:** tie
+  each number to its theme and field (e.g. require "28%" to appear in the same
+  sentence as that theme's label), or show only the template when a summary
+  quotes percentages.
+- **The no-change sentence (#29) was not added.** The note said only "trimmed to 3
+  sentences". The likely reason is that the extension was not reloaded after #29;
+  to confirm on the next run.
+- **Interpretation caveat: time since purchase.** Many complaints are failures
+  *after months of use* ("keep connecting inside the case after 5 months", "doesnt
+  work properly for even 6 months"). Reviews written or updated later describe
+  older units, so a rise in such themes can reflect the product *ageing* in
+  buyers' hands, not a change in what is being sold. Note this in the UI
+  limitations (Phase 6).

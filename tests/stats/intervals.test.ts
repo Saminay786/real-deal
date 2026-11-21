@@ -57,14 +57,15 @@ describe('newcombe', () => {
 });
 
 describe('standardizedDiff', () => {
-  it('weights per-star differences by star-level size', () => {
-    // Stratum 1★: before 10/50 = 0.2, after 20/50 = 0.4 (n = 100)
-    // Stratum 5★: before 5/100 = 0.05, after 5/100 = 0.05 (n = 200)
+  it('weights per-star differences by star-level size (Agresti–Caffo adjusted)', () => {
+    // Adjusted p̃ = (k + 1)/(n + 2)
+    // Stratum 1★: before 10/50 → 11/52 = 0.211538; after 20/50 → 21/52 = 0.403846 (n = 100)
+    // Stratum 5★: before 5/100 → 6/102 = 0.058824; after the same (n = 200)
     // w₁ = 100/300 = 1/3, w₅ = 2/3
-    // d = (1/3)(0.4 − 0.2) + (2/3)(0) = 0.066667
-    // Var = (1/9)(0.4·0.6/50 + 0.2·0.8/50) + (4/9)(0.05·0.95/100 · 2)
-    //     = (1/9)(0.0048 + 0.0032) + (4/9)(0.00095) = 0.00088889 + 0.00042222 = 0.00131111
-    // half = 1.96·√0.00131111 = 1.96·0.036209 = 0.070970 → [−0.004303, 0.137637]
+    // d = (1/3)(0.403846 − 0.211538) + (2/3)(0) = 0.064103
+    // Var = (1/9)(0.403846·0.596154/52 + 0.211538·0.788462/52) + (4/9)(2 · 0.058824·0.941176/102)
+    //     = (1/9)(0.0046299 + 0.0032075) + (4/9)(0.0010856) = 0.00087082 + 0.00048247 = 0.00135329
+    // half = 1.96·√0.00135329 = 1.96·0.036787 = 0.072103 → [−0.008000, 0.136205]
     const r = standardizedDiff(
       [
         { stratum: 1, kBefore: 10, nBefore: 50, kAfter: 20, nAfter: 50 },
@@ -72,13 +73,38 @@ describe('standardizedDiff', () => {
       ],
       Z,
     );
-    expect(r?.diff).toBeCloseTo(0.066667, 5);
-    expect(r?.ci[0]).toBeCloseTo(-0.004303, 5);
-    expect(r?.ci[1]).toBeCloseTo(0.137637, 5);
+    expect(r?.diff).toBeCloseTo(0.064103, 5);
+    expect(r?.ci[0]).toBeCloseTo(-0.008, 5);
+    expect(r?.ci[1]).toBeCloseTo(0.136205, 5);
     expect(r?.strataUsed).toBe(2);
   });
 
-  it('drops strata seen on one side only, and falls back to Newcombe for one stratum', () => {
+  it('ignores tiny strata that used to dominate the estimate (boAt case, DECISIONS #30)', () => {
+    // Before the fix, a 1★ stratum with 2 reviews before (both mention the theme) and
+    // 40 after (none do) contributed −100 points with zero Wald variance.
+    const strata = [
+      { stratum: 1, kBefore: 2, nBefore: 2, kAfter: 0, nAfter: 40 }, // < 10 before → excluded
+      { stratum: 5, kBefore: 6, nBefore: 60, kAfter: 4, nAfter: 40 },
+    ];
+    const r = standardizedDiff(strata, Z);
+    expect(r?.strataUsed).toBe(1);
+    // Only 5★ remains → Newcombe on 6/60 vs 4/40: d = 0.1 − 0.1 = 0
+    expect(r?.diff).toBeCloseTo(0, 12);
+    expect(r && r.ci[1] - r.ci[0]).toBeGreaterThan(0.1); // honest width, not collapsed
+  });
+
+  it('never reports zero uncertainty when a stratum is 0% or 100%', () => {
+    const r = standardizedDiff(
+      [
+        { stratum: 1, kBefore: 0, nBefore: 20, kAfter: 0, nAfter: 20 },
+        { stratum: 5, kBefore: 20, nBefore: 20, kAfter: 20, nAfter: 20 },
+      ],
+      Z,
+    );
+    expect(r && r.ci[1] - r.ci[0]).toBeGreaterThan(0.05);
+  });
+
+  it('drops strata with fewer than 10 on a side, and falls back to Newcombe for one stratum', () => {
     const r = standardizedDiff(
       [
         { stratum: 1, kBefore: 48, nBefore: 80, kAfter: 56, nAfter: 70 },

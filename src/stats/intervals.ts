@@ -52,19 +52,25 @@ export interface StratumCounts {
   nAfter: number;
 }
 
+/** A stratum needs this many reviews on each side of the change to enter the adjusted difference. */
+export const MIN_STRATUM_SIDE = 10;
+
 /**
- * Star-mix-adjusted difference by direct standardisation:
- *   d_adj = Σ_s w_s (p_s,after − p_s,before),  w_s = (n_s,before + n_s,after) / Σ(…)
- *   Var   = Σ_s w_s² (p_a(1−p_a)/n_a + p_b(1−p_b)/n_b)      (Wald, per stratum)
- * Strata with no reviews on one side carry no information about change and are
- * dropped (weights renormalised). With a single usable stratum this falls back
- * to the Newcombe interval, which behaves better for small counts.
+ * Star-mix-adjusted difference by direct standardisation, with Agresti–Caffo
+ * adjusted proportions p̃ = (k + 1)/(n + 2) in each stratum and side:
+ *   d_adj = Σ_s w_s (p̃_s,after − p̃_s,before),  w_s = (n_s,before + n_s,after) / Σ(…)
+ *   Var   = Σ_s w_s² (p̃_a(1−p̃_a)/(n_a + 2) + p̃_b(1−p̃_b)/(n_b + 2))
+ * Only strata with ≥ MIN_STRATUM_SIDE reviews on both sides are used (weights
+ * renormalised). Before this rule, strata with 1–3 reviews on one side dominated
+ * the estimate and plain Wald variance collapsed to 0 at p̂ ∈ {0, 1}, giving
+ * e.g. "Δ −32% [−38%, −26%]" for a 17% → 10% change (DECISIONS #30).
+ * With a single usable stratum this falls back to the Newcombe interval.
  */
 export function standardizedDiff(
   strata: readonly StratumCounts[],
   z: number = Z95,
 ): { diff: number; ci: [number, number]; strataUsed: number } | null {
-  const usable = strata.filter((s) => s.nBefore > 0 && s.nAfter > 0);
+  const usable = strata.filter((s) => s.nBefore >= MIN_STRATUM_SIDE && s.nAfter >= MIN_STRATUM_SIDE);
   if (usable.length === 0) return null;
   if (usable.length === 1) {
     const s = usable[0] as StratumCounts;
@@ -75,10 +81,10 @@ export function standardizedDiff(
   let v = 0;
   for (const s of usable) {
     const w = (s.nBefore + s.nAfter) / total;
-    const pb = s.kBefore / s.nBefore;
-    const pa = s.kAfter / s.nAfter;
+    const pb = (s.kBefore + 1) / (s.nBefore + 2);
+    const pa = (s.kAfter + 1) / (s.nAfter + 2);
     d += w * (pa - pb);
-    v += w * w * ((pa * (1 - pa)) / s.nAfter + (pb * (1 - pb)) / s.nBefore);
+    v += w * w * ((pa * (1 - pa)) / (s.nAfter + 2) + (pb * (1 - pb)) / (s.nBefore + 2));
   }
   const half = z * Math.sqrt(v);
   return { diff: d, ci: [d - half, d + half], strataUsed: usable.length };
