@@ -207,11 +207,12 @@ uses keyword labels and a template summary. See Google's
 
 ## Related work
 
-- **Amazon "Customers say"**: an AI review summary, with no time dimension and no uncertainty.
-- **Fakespot** (shut down in 2025) and **ReviewMeta**: server-side authenticity grading. Real Deal runs locally
-  and reports *signals*, not verdicts.
-- **Keepa / camelcamelcamel**: price history, not reviews.
-- **BERTopic** (Grootendorst, 2022): origin of c-TF-IDF. Real Deal adds per-theme change-point tests with
+- **Amazon ["Customers say"](https://www.aboutamazon.com/news/amazon-ai/amazon-ai-generated-review-highlights)**: an AI review summary, with no time dimension and no uncertainty.
+- **Fakespot** ([shut down by Mozilla in July 2025](https://blog.mozilla.org/en/mozilla/building-whats-next/)) and
+  **[ReviewMeta](https://www.retailbrew.com/stories/2021/07/12/reviewmeta-wants-helps-online-shoppers-reality-check-shady-amazon-reviews)**
+  (no longer operating): server-side authenticity grading. Real Deal runs locally and reports *signals*, not verdicts.
+- **[Keepa](https://keepa.com)** / **[camelcamelcamel](https://camelcamelcamel.com)**: price history, not reviews.
+- **[BERTopic](https://arxiv.org/abs/2203.05794)** (Grootendorst, 2022): origin of c-TF-IDF. Real Deal adds per-theme change-point tests with
   false-discovery control, on-device.
 
 ## Roadmap
