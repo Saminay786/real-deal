@@ -17,13 +17,9 @@ found a wipes product's packaging change at the right month (June 2021), which r
 confirmed ("New packaging awful… they took away the plastic flip top cover"). In simulation, its false-alarm
 rate is 5% and it detects a 10% → 25% shift 85% of the time with 300 reviews. → [Validation](#validation)
 
-<!--
-Screenshots: add docs/screenshots/badge.png and docs/screenshots/themes.png, then
-restore this table (kept commented out so GitHub shows no broken images):
-| Rating badge | Side panel: themes over time |
-|---|---|
-| ![Rating badge](docs/screenshots/badge.png) | ![Themes over time](docs/screenshots/themes.png) |
--->
+| A **Real change**: short "not good for calling" verdicts fell from 30% to 12% of reviews after Jan 2026 | **Could just be luck**: the box crosses 0 | Search results scored |
+|---|---|---|
+| ![Real change card](docs/screenshots/real-change.png) | ![Could just be luck cards](docs/screenshots/themes-luck.png) | ![Search results card](docs/screenshots/search.png) |
 
 ---
 
