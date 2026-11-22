@@ -59,6 +59,7 @@ cause for each of them.)
 | 51 | Committed with a test timing out | Large fixtures parse slowly under parallel load, and only the new tests were run before committing. |
 | 52 | Search panel stuck on "press F5"; no scores | The panel asked once when loading started, before the content script existed, and never retried. Search scores shared the rating-badge switch the user had turned off. |
 | 53 | Score badges invisible on search cards | The badge was put inside the title link, which Amazon clips to a few lines; Amazon also redraws cards after load. The fixtures are static HTML without Amazon's CSS or scripts. |
+| 54 | Summary said "No theme changed" beside two Real changes; "34% → 34%, +11 points" | The validator only blocked change claims when nothing changed, not the reverse. The card showed raw shares beside a star-adjusted change without saying so. |
 | 29 | Summary omits "no clear change" | Small models follow "must include" instructions only partly, and validation checked only forbidden content, not required content. |
 
 ---
@@ -1090,3 +1091,24 @@ The Python implementation reproduces the extension's hand-computed test values (
   only when their text changes, so the observer can't loop. Fixed both text bugs.
 - **Lesson.** For anything injected into Amazon's DOM, test "not inside a clipped or interactive element", and
   expect the page to redraw.
+
+### 54. Summary contradicted the cards; raw shares beside a star-adjusted change
+- **What happened.** Realme neckband, 336 reviews from 4 views (all stars, 5★, 4★, 3★). Two themes showed
+  **Real change** (q = 0.04), but the Gemini Nano summary began "No theme changed clearly". Separately, a card read
+  "34% (34 of 99) → 34% (79 of 229) since Mar 2026, +11 points".
+- **Why it happened.**
+  1. `summaryProblem` checked one direction only: it blocked rise/fall claims when **no** theme changed (#29, #32)
+     but never blocked "no theme changed" when **some** did. The model copied the prompt's no-change wording
+     for the wrong case.
+  2. With star filters, the change Δ is star-adjusted (#35), but the sentence prints the raw before/after
+     shares. They differ when the star mix differs across the split: here the later months came mostly
+     from the 5★ and 4★ views.
+- **Why it wasn't caught earlier.** Validator tests were written from observed failures, which so far had all
+  been "claims change when there is none". The opposite case needed a product with a real change *and* a
+  confused model. The adjusted-vs-raw difference only shows when the star mix shifts strongly, which earlier
+  test products didn't have.
+- **Decision.** If any theme changed, the summary is rejected (and falls back to the template) when it says no
+  theme changed or names none of the changed themes, and the prompt says so explicitly. Cards with an
+  adjusted Δ now read "…since Mar 2026. Comparing each star level only with itself: **+11 points**."
+- **Lesson.** Validate LLM output for contradictions in both directions, and label every number whose meaning
+  differs from the numbers next to it.

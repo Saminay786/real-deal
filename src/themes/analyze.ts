@@ -169,6 +169,7 @@ export function analyzeThemes(
       after: { n: v.nAfter, k: v.kAfter, share: v.nAfter ? v.kAfter / v.nAfter : 0 },
       diff: effect.diff,
       diffCi: effect.ci,
+      starAdjusted: effect !== pooled,
       pValue: v.pValue,
       exemplars: { before: pick(0, v.tau), after: pick(v.tau, sorted.length) },
       order: raw.length,

@@ -110,7 +110,14 @@ function ThemeRow({ s, t, series }: { s: ShiftResult; t: Theme | undefined; seri
       <ThemeChange s={s} series={series} />
       <p class="small theme-line">
         {before}% ({s.before.k} of {s.before.n} reviews) → {after}% ({s.after.k} of {s.after.n}) since{' '}
-        {monthName(s.changeAt)}, {signed(d)} points.
+        {monthName(s.changeAt)}
+        {s.starAdjusted ? (
+          <>
+            . Comparing each star level only with itself: <strong>{signed(d)} points</strong>.
+          </>
+        ) : (
+          <>, {signed(d)} points.</>
+        )}
       </p>
       <details class="small">
         <summary>Details</summary>

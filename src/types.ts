@@ -80,8 +80,11 @@ export interface ShiftResult {
   changeAt: string;
   before: ShareCount;
   after: ShareCount;
+  /** Change in share; star-adjusted when `starAdjusted`, else before → after. */
   diff: number;
   diffCi: [number, number];
+  /** `diff` compares within star levels, so it can differ from after − before (DECISIONS #54). */
+  starAdjusted?: boolean;
   pValue: number;
   qValue: number;
   significant: boolean;

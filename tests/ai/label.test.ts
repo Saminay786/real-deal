@@ -180,17 +180,17 @@ describe('validateSummary', () => {
     // Seen on real Nano: "Over 100 reviews were collected…" with exactly 100 reviews.
     expect(validateSummary('Over 106 reviews mentioned the product.', changed)).toBe(false);
     expect(validateSummary('Nearly 33% mention paint damage.', changed)).toBe(false);
-    expect(validateSummary('Paint, wall, walls was mentioned in 33% of 106 reviews.', changed)).toBe(true);
+    expect(validateSummary('Mentions of received, ordered, qty rose from 5% to 17% of reviews. Paint, wall, walls was mentioned in 33% of 106 reviews.', changed)).toBe(true);
   });
 
   it('rejects percentages that are not "% of reviews" or not next to their theme (real Nano, DECISIONS #31)', () => {
     // Real Nano: "Battery performance was viewed negatively 13% of the time."
-    expect(summaryProblem('Paint, wall, walls was viewed negatively 33% of the time.', changed)).toBe(
+    expect(summaryProblem('Mentions of received, ordered, qty rose from 5% to 17% of reviews. Paint, wall, walls was viewed negatively 33% of the time.', changed)).toBe(
       '33% is not written as "33% of reviews"',
     );
     // Right wording, wrong theme: 10% belongs to received/ordered/qty, not paint.
-    expect(summaryProblem('Paint, wall, walls appeared in 10% of reviews.', changed)).toBe('10% is not next to the theme it belongs to');
-    expect(summaryProblem('Paint, wall, walls appeared in 33% of reviews.', changed)).toBeNull();
+    expect(summaryProblem('Mentions of received, ordered, qty rose from 5% to 17% of reviews. Paint, wall, walls appeared in 10% of reviews.', changed)).toBe('10% is not next to the theme it belongs to');
+    expect(summaryProblem('Mentions of received, ordered, qty rose from 5% to 17% of reviews. Paint, wall, walls appeared in 33% of reviews.', changed)).toBeNull();
   });
 
   it('rejects flipped sentiment next to a label (real Nano, DECISIONS #32)', () => {
@@ -201,6 +201,14 @@ describe('validateSummary', () => {
     );
     // Labels that contain such words themselves are fine.
     expect(summaryProblem('No theme changed clearly. Paint, wall, walls appeared in 33% of reviews.', pos)).toBeNull();
+  });
+
+  it('rejects "no theme changed" when a theme did change, and summaries that skip the changed theme (DECISIONS #54)', () => {
+    // Real Nano: "No theme changed clearly. …" while two themes showed Real change.
+    expect(summaryProblem('No theme changed clearly. Paint, wall, walls appeared in 33% of reviews.', changed)).toBe(
+      'says no theme changed although some did',
+    );
+    expect(summaryProblem('Paint, wall, walls appeared in 33% of reviews.', changed)).toBe('does not name a theme that changed');
   });
 
   it('rejects a claimed rise or fall when no theme changed', () => {

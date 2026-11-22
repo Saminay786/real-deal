@@ -234,6 +234,7 @@ export function buildNarrativePrompt(input: NarrativeInput, format: 'json' | 'pl
     'Write a summary for a shopper of at most 3 short sentences, based ONLY on this JSON about one product\'s reviews.',
     'Rules: use only facts and numbers that appear in the JSON; do not add causes, advice or other numbers;',
     'a theme with "changed": false has NO clear change, so never describe it as rising or falling;',
+    'if some themes have "changed": true, start with those themes and their before and after numbers, and never say that no theme changed;',
     'if no theme changed, start with "No theme changed clearly" and then name the most mentioned themes;',
     "keep each theme's sentiment: do not call a positive theme an issue or a negative theme praise;",
     'neutral wording; never say reviews are fake; write numbers exactly as given, without "over", "about" or "nearly";',
@@ -291,7 +292,15 @@ export function summaryProblem(text: string, input: NarrativeInput): string | nu
   const qualified = t.match(/\b(over|more than|under|less than|fewer than|nearly|almost|at least|up to)\s+\d/i);
   if (qualified) return `qualifies a number ("${qualified[0]}")`;
   const claim = t.match(/\b(rose|risen|increas\w*|grew|jump\w*|fell|drop\w*|declin\w*|decreas\w*)/i);
-  if (!input.themes.some((x) => x.changed) && claim) return `says "${claim[0]}" although no theme changed significantly`;
+  const changedThemes = input.themes.filter((x) => x.changed);
+  if (changedThemes.length === 0 && claim) return `says "${claim[0]}" although no theme changed significantly`;
+  // The reverse contradiction: "No theme changed clearly" while the cards show a
+  // Real change (DECISIONS #54).
+  if (changedThemes.length > 0) {
+    if (SAYS_NO_CHANGE.test(t)) return 'says no theme changed although some did';
+    const low = t.toLowerCase();
+    if (!changedThemes.some((x) => low.includes(x.label.toLowerCase()))) return 'does not name a theme that changed';
+  }
   // Every percentage must mean "share of reviews" and belong to a theme named in the
   // same sentence: "viewed negatively 13% of the time" misread a mention share as a
   // sentiment share (DECISIONS #31).
