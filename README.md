@@ -229,6 +229,20 @@ npm run audit:network  # verify the build cannot make outbound requests
 
 Specification and contributor rules: [CLAUDE.md](CLAUDE.md).
 
+## Disclaimer
+
+Real Deal is an independent personal project. It is **not affiliated with or endorsed by Amazon**. Amazon is a
+trademark of Amazon.com, Inc.; other product and brand names belong to their owners.
+
+**Use at your own risk.** Real Deal only reads pages you open yourself. The one automated action, **Load this view**,
+runs only when you press it: it clicks Amazon's own "Show 10 more" button every 2–4 seconds and stops at Amazon's
+limit of 100 reviews per view. Nothing is sent anywhere. Statistical results are *signals* to read further, never
+verdicts that a product or review is fake.
+
+**Data.** The validation uses the Amazon Reviews 2023 dataset (McAuley Lab, UC San Diego), shared for research and
+not redistributed here: Hou, Y., Li, J., He, Z., Yan, A., Chen, X. & McAuley, J. (2024). *Bridging Language and
+Items for Retrieval and Recommendation.* arXiv:2403.03952.
+
 ## License
 
 [MIT](LICENSE) © 2026 Saminay786
