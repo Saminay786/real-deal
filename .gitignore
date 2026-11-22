@@ -11,3 +11,4 @@ research/.venv/
 *.mp4
 *.mov
 *.webm
+release/

@@ -156,7 +156,19 @@ logged in **[docs/DECISIONS.md](docs/DECISIONS.md)**.
 - **It reads only pages you open.** The one exception, **Load reviews on this page**, clicks Amazon's own "Show
   10 more" every 2–4 s up to Amazon's 100 per view, and only when you press it.
 
-## Install (developer mode)
+## Install
+
+### Easy install (no coding)
+
+1. Download **`real-deal-v0.1.0.zip`** from the [latest release](https://github.com/Saminay786/real-deal/releases/latest).
+2. Unzip it and move the `real-deal` folder somewhere permanent.
+3. In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose that folder.
+
+📖 **Step-by-step guide with screenshots: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)**: installing, collecting
+reviews, reading the results, updating and troubleshooting.
+
+### Build from source
+
 
 Needs Node.js 20+ and Chrome.
 
@@ -225,6 +237,7 @@ docs/            METHODOLOGY.md (formulas), DECISIONS.md (what went wrong and wh
 npm test               # ~200 unit tests incl. simulations (Vitest)
 npm run build          # type-check + production build
 npm run audit:network  # verify the build cannot make outbound requests
+npm run package        # release/real-deal-v<version>.zip for the Releases page
 ```
 
 Specification and contributor rules: [CLAUDE.md](CLAUDE.md).
